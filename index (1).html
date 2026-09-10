@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TradeWise — Learn. Trade. Analyze. Improve.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+/* ============ DESIGN TOKENS — warm editorial paper-market theme ============ */
+:root[data-theme="light"]{
+  --bg:#F7F1E6; --bg-elev:#FBF7EF; --bg-elev-2:#F1E9D8; --border:#E5D9C3;
+  --text:#221D17; --text-dim:#6E6255; --text-faint:#9C9184;
+  --accent:#C1502E; --accent-ink:#FBF3E7; --accent-dim:#A6431F;
+  --gain:#3B6B4A; --loss:#B23A2E; --amber:#C1852E; --indigo:#5C6B8C;
+  --ink-pill:#231F1B; --ink-pill-text:#F7F1E6;
+  --shadow: 0 2px 10px rgba(74,58,33,.06);
+}
+:root[data-theme="dark"]{
+  --bg:#1B1712; --bg-elev:#241F18; --bg-elev-2:#2C261D; --border:#3A3226;
+  --text:#F3EBDC; --text-dim:#B7A88F; --text-faint:#83765F;
+  --accent:#E07A50; --accent-ink:#241108; --accent-dim:#C1502E;
+  --gain:#6FAE83; --loss:#E0776A; --amber:#E0A758; --indigo:#9AA8C9;
+  --ink-pill:#F3EBDC; --ink-pill-text:#231F1B;
+  --shadow: 0 4px 18px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
+  transition:background .25s ease, color .25s ease;
+}
+h1,h2,h3,.serif{ font-family:'Fraunces',serif; letter-spacing:-0.015em; font-weight:600; }
+.mono{ font-family:'IBM Plex Mono',monospace; font-feature-settings:"tnum"; }
+a{color:inherit; text-decoration:none;}
+button{font-family:inherit; cursor:pointer;}
+ul{list-style:none;}
+img{max-width:100%; display:block;}
+::selection{background:var(--accent); color:var(--accent-ink);}
+::-webkit-scrollbar{width:8px; height:8px;}
+::-webkit-scrollbar-thumb{background:var(--border); border-radius:8px;}
+
+.gain{color:var(--gain);} .loss{color:var(--loss);}
+.dim{color:var(--text-dim);}
+.faint{color:var(--text-faint);}
+
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px 22px; border-radius:999px; border:1px solid transparent;
+  font-size:14px; font-weight:600; transition:transform .12s ease, opacity .12s ease, background .15s ease;
+  white-space:nowrap;
+}
+.btn:active{ transform:scale(0.97); }
+.btn-primary{ background:var(--accent); color:var(--accent-ink); }
+.btn-primary:hover{ opacity:.88; }
+.btn-ghost{ background:transparent; color:var(--text); border-color:var(--border); }
+.btn-ghost:hover{ background:var(--bg-elev-2); }
+.btn-loss{ background:var(--loss); color:#fff; }
+.btn-loss:hover{ opacity:.88; }
+.btn-sm{ padding:7px 15px; font-size:13px; border-radius:999px; }
+.btn-block{ width:100%; }
+.btn:disabled{ opacity:.45; cursor:not-allowed; }
+
+.card{
+  background:var(--bg-elev-2); border:1px solid transparent; border-radius:18px;
+  padding:20px;
+}
+.card-flat{
+  background:var(--bg-elev); border-radius:14px; padding:16px;
+}
+.eyebrow{ font-size:11.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
+.eyebrow-light{ color:var(--amber); }
+.dark-card{ background:var(--ink-pill); color:var(--ink-pill-text); border-radius:18px; padding:20px; }
+.dark-card .dim{ color:color-mix(in srgb, var(--ink-pill-text) 65%, transparent); }
+.dark-card .mini-eyebrow{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; opacity:.8; }
+.dark-card .progress-bar{ background:color-mix(in srgb, var(--ink-pill-text) 18%, transparent); }
+.dark-card .progress-bar > i{ background:var(--amber); }
+.step-pill{ display:block; width:100%; text-align:left; padding:12px 16px; border-radius:999px; background:var(--bg-elev); font-size:13.5px; font-weight:600; color:var(--text); border:none; margin-bottom:9px; }
+.step-pill:last-child{ margin-bottom:0; }
+.step-pill:hover{ background:color-mix(in srgb, var(--accent) 10%, var(--bg-elev)); }
+.pill{
+  display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px;
+  font-size:12px; font-weight:600; border:1px solid var(--border); color:var(--text-dim);
+}
+.pill-accent{ background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); border-color:transparent; }
+.pill-amber{ background:color-mix(in srgb, var(--amber) 16%, transparent); color:var(--amber); border-color:transparent; }
+.pill-loss{ background:color-mix(in srgb, var(--loss) 14%, transparent); color:var(--loss); border-color:transparent; }
+.pill-gain{ background:color-mix(in srgb, var(--gain) 14%, transparent); color:var(--gain); border-color:transparent; }
+.pill-dot{ background:var(--bg-elev); border:1px solid var(--border); }
+.pill-dot i{ width:7px;height:7px;border-radius:50%; background:var(--gain); display:inline-block; }
+.btn-dark{ background:var(--ink-pill); color:var(--ink-pill-text); }
+.btn-dark:hover{ opacity:.88; }
+.brand-sub{ font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); font-weight:600; margin-left:2px; }
+
+input,select,textarea{
+  width:100%; background:var(--bg-elev-2); border:1px solid var(--border); color:var(--text);
+  padding:11px 13px; border-radius:9px; font-size:14px; font-family:inherit; outline:none;
+  transition:border-color .15s ease;
+}
+input:focus,select:focus,textarea:focus{ border-color:var(--accent); }
+label{ font-size:12.5px; font-weight:600; color:var(--text-dim); display:block; margin-bottom:6px; }
+.field{ margin-bottom:16px; }
+
+.container{ max-width:1180px; margin:0 auto; padding:0 24px; }
+.grid{ display:grid; gap:16px; }
+.hidden{ display:none !important; }
+
+.table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -2px; }
+table{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:560px; }
+th{ text-align:left; padding:10px 12px; color:var(--text-faint); font-weight:600; font-size:12px; text-transform:none; border-bottom:1px solid var(--border); }
+td{ padding:12px; border-bottom:1px solid var(--border); }
+tr:last-child td{ border-bottom:none; }
+tr.rowhover:hover{ background:var(--bg-elev-2); cursor:pointer; }
+
+.badge-icon{ width:42px;height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:var(--bg-elev-2); border:1px solid var(--border); flex-shrink:0;}
+
+/* focus visibility */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{
+  outline:2px solid var(--accent); outline-offset:2px;
+}
+@media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+
+/* ============ SCAFFOLD ============ */
+#root{ min-height:100vh; }
+.toast-wrap{ position:fixed; bottom:20px; right:20px; z-index:999; display:flex; flex-direction:column; gap:8px; }
+.toast{ background:var(--bg-elev); border:1px solid var(--border); padding:12px 16px; border-radius:10px; font-size:13.5px; box-shadow:0 8px 24px rgba(0,0,0,.25); animation:toastin .2s ease; max-width:300px;}
+@keyframes toastin{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+/* spinner */
+.spin{ width:16px;height:16px;border-radius:50%; border:2px solid var(--border); border-top-color:var(--accent); animation:spin .7s linear infinite; display:inline-block;}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+.skel{ background:linear-gradient(90deg, var(--bg-elev-2) 25%, var(--border) 37%, var(--bg-elev-2) 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; border-radius:8px; }
+@keyframes shimmer{ 0%{background-position:100% 50%;} 100%{background-position:0 50%;} }
+
+/* ============ LANDING ============ */
+.landing-nav{ position:sticky; top:0; z-index:50; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--border); }
+.landing-nav .container{ display:flex; align-items:center; justify-content:space-between; height:68px; }
+.brand{ display:flex; align-items:center; gap:9px; font-weight:700; font-size:18px; }
+.brand-mark{ width:30px;height:30px;border-radius:50%; background:var(--accent); display:flex; align-items:center;justify-content:center; color:var(--accent-ink); font-size:15px; font-weight:700; font-family:'Fraunces',serif;}
+.nav-links{ display:flex; gap:28px; font-size:14px; color:var(--text-dim); }
+.nav-links a:hover{ color:var(--text); }
+.nav-actions{ display:flex; gap:10px; align-items:center; }
+
+.hero{ padding:88px 0 60px; background:radial-gradient(ellipse 900px 500px at 15% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%); }
+.hero-grid{ display:grid; grid-template-columns:1.05fr 1fr; gap:60px; align-items:center; }
+.hero h1{ font-size:64px; line-height:1.0; font-weight:600; margin-bottom:22px; }
+.hero p.lead{ font-size:17.5px; color:var(--text-dim); line-height:1.6; max-width:480px; margin-bottom:30px; }
+.hero-ctas{ display:flex; gap:12px; margin-bottom:40px; }
+.trust-row{ display:flex; gap:36px; flex-wrap:wrap; }
+.trust-stat .n{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; }
+.trust-stat .l{ font-size:12px; color:var(--text-faint); margin-top:2px; }
+
+.mock-window{ background:var(--bg-elev); border:1px solid var(--border); border-radius:26px; overflow:hidden; box-shadow:0 30px 70px -24px rgba(74,58,33,.28); padding:22px;}
+.mock-eyebrow{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); font-weight:700; margin-bottom:6px;}
+.mock-head-row{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;}
+.mock-total{ font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:600; }
+.mock-chip{ background:color-mix(in srgb, var(--gain) 15%, transparent); color:var(--gain); font-size:12px; font-weight:700; padding:6px 12px; border-radius:999px;}
+.mock-body{ padding:0; }
+.mock-inner-card{ background:var(--bg-elev-2); border-radius:16px; padding:14px 16px; margin-bottom:12px;}
+.mock-inner-top{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--text-dim); margin-bottom:12px;}
+.mock-bars{ display:flex; align-items:flex-end; gap:7px; height:70px;}
+.mock-bars i{ flex:1; border-radius:5px 5px 0 0; background:color-mix(in srgb, var(--gain) 30%, var(--bg-elev-2)); }
+.mock-bars i:last-child{ background:var(--gain); }
+.mock-list-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 2px; border-bottom:1px solid var(--border); font-size:13.5px;}
+.mock-list-row:last-child{border:none;}
+.mock-dot-lbl{ display:flex; align-items:center; gap:9px; font-weight:600; }
+.mock-dot-lbl i{ width:8px;height:8px;border-radius:50%; flex-shrink:0; }
+.mock-footer{ background:var(--ink-pill); color:var(--ink-pill-text); border-radius:16px; padding:14px 16px; margin-top:4px;}
+.mock-footer-top{ display:flex; justify-content:space-between; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; font-weight:700; margin-bottom:10px; opacity:.85;}
+.mock-progress{ height:6px; border-radius:6px; background:rgba(247,241,230,.18); overflow:hidden; margin-bottom:10px;}
+.mock-progress i{ display:block; height:100%; background:var(--accent); }
+.mock-footer-sub{ font-size:12px; opacity:.75; }
+
+.section{ padding:76px 0; border-top:1px solid var(--border); }
+.section-head{ max-width:560px; margin-bottom:42px; }
+.section-head h2{ font-size:34px; font-weight:600; margin-bottom:12px; }
+.section-head p{ color:var(--text-dim); font-size:15.5px; line-height:1.6; }
+.how-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+.how-card{ padding:26px 24px; border-radius:22px; background:var(--bg-elev-2); }
+.how-card .n{ font-family:'Fraunces',serif; font-size:38px; font-weight:600; color:color-mix(in srgb, var(--accent) 42%, var(--bg-elev-2)); margin-bottom:12px; line-height:1; }
+.how-card h3{ font-size:18px; font-weight:700; margin-bottom:8px; font-family:'Inter',sans-serif;}
+.how-card p{ font-size:13.8px; color:var(--text-dim); line-height:1.55; }
+
+.feat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+.feat-card{ padding:26px 24px; border:none; border-radius:22px; background:var(--bg-elev-2); }
+.feat-card .fi{ width:52px;height:52px; border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:21px; margin-bottom:18px; background:var(--bg-elev); }
+.feat-card .fi.fi-sage{ background:color-mix(in srgb, var(--gain) 20%, var(--bg-elev)); }
+.feat-card .fi.fi-rose{ background:color-mix(in srgb, var(--loss) 16%, var(--bg-elev)); }
+.feat-card .fi.fi-peach{ background:color-mix(in srgb, var(--amber) 22%, var(--bg-elev)); }
+.feat-card .fi.fi-mint{ background:color-mix(in srgb, var(--gain) 26%, var(--bg-elev)); }
+.feat-card .fi.fi-dark{ background:var(--ink-pill); }
+.feat-card .fi.fi-sky{ background:color-mix(in srgb, var(--indigo) 22%, var(--bg-elev)); }
+.feat-card h3{ font-size:17px; margin-bottom:8px; font-weight:700; font-family:'Fraunces',serif;}
+.feat-card p{ font-size:13.5px; color:var(--text-dim); line-height:1.55; }
+.feat-mini-row{ display:flex; align-items:center; justify-content:space-between; padding:6px 0; font-size:13px; }
+.feat-mini-row .pill{ background:var(--bg-elev); }
+
+.safety-box{ background:var(--ink-pill); color:var(--ink-pill-text); border-radius:24px; padding:44px; }
+.safety-box h3{ font-size:30px; margin-bottom:14px; font-weight:600; max-width:640px; line-height:1.2; }
+.safety-box p{ color:color-mix(in srgb, var(--ink-pill-text) 68%, transparent); font-size:14.5px; line-height:1.6; max-width:560px; }
+.safety-list{ margin-top:22px; display:flex; gap:10px; flex-wrap:wrap; }
+.safety-list .pill{ border-color:color-mix(in srgb, var(--ink-pill-text) 25%, transparent); color:var(--ink-pill-text); }
+
+footer{ border-top:1px solid var(--border); padding:36px 0; font-size:13px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center;}
+
+/* ============ AUTH ============ */
+.auth-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+.auth-card{ width:100%; max-width:400px; }
+.auth-head{ text-align:left; margin-bottom:26px; }
+.auth-head h1{ font-size:32px; margin-bottom:8px; }
+.auth-head p{ color:var(--text-dim); font-size:14px; }
+.auth-switch{ text-align:center; margin-top:18px; font-size:13.5px; color:var(--text-dim); }
+.auth-switch a{ color:var(--accent); font-weight:600; }
+.divider{ display:flex; align-items:center; gap:12px; color:var(--text-faint); font-size:12px; margin:20px 0; }
+.divider::before, .divider::after{ content:''; flex:1; height:1px; background:var(--border); }
+.auth-card input{ border-radius:999px; padding:15px 22px; background:var(--bg-elev-2); border:1px solid transparent; }
+.auth-card .field{ margin-bottom:14px; }
+.btn-google{ background:var(--bg-elev-2); color:var(--text); border:1px solid transparent; border-radius:999px; padding:15px 22px; font-weight:700; }
+.btn-google:hover{ background:color-mix(in srgb, var(--accent) 8%, var(--bg-elev-2)); }
+.divider::before,.divider::after{ content:''; flex:1; height:1px; background:var(--border); }
+
+.opt-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.opt-card{ border:1.5px solid var(--border); border-radius:12px; padding:16px; text-align:left; background:var(--bg-elev); transition:border-color .15s; }
+.opt-card:hover{ border-color:var(--text-faint); }
+.opt-card.sel{ border-color:var(--accent); background:rgba(23,214,180,.08); }
+.opt-card .oi{ font-size:20px; margin-bottom:8px; }
+.opt-card .ot{ font-weight:700; font-size:14px; margin-bottom:3px; }
+.opt-card .od{ font-size:12px; color:var(--text-dim); }
+.onboard-progress{ display:flex; gap:6px; margin-bottom:26px; }
+.onboard-progress i{ flex:1; height:3px; border-radius:3px; background:var(--border); }
+.onboard-progress i.on{ background:var(--accent); }
+
+/* ============ APP SHELL ============ */
+.app-shell{ display:flex; flex-direction:column; min-height:100vh; }
+.app-header{ border-bottom:1px solid var(--border); }
+.app-header-row{ display:flex; align-items:center; justify-content:space-between; height:64px; }
+.level-pill{ display:inline-flex; align-items:center; padding:7px 14px; border-radius:999px; border:1px solid var(--border); font-size:12.5px; font-weight:600; color:var(--text-dim); background:var(--bg-elev); }
+.app-nav-bar{ display:flex; align-items:center; gap:6px; height:54px; border-bottom:1px solid var(--border); overflow-x:auto; }
+.app-nav-pill{ display:flex; align-items:center; gap:7px; padding:9px 15px; border-radius:999px; font-size:13.5px; font-weight:600; color:var(--text-dim); white-space:nowrap; flex-shrink:0; }
+.app-nav-pill:hover{ color:var(--text); }
+.app-nav-pill.active{ background:var(--bg-elev-2); color:var(--text); }
+.app-nav-pill .ic{ font-size:15px; }
+.more-menu-wrap{ position:relative; }
+.more-menu{ position:absolute; top:calc(100% + 8px); right:0; width:200px; background:var(--bg-elev); border:1px solid var(--border); border-radius:14px; padding:6px; box-shadow:0 20px 50px rgba(0,0,0,.22); z-index:100; }
+.more-menu a{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:9px; font-size:13.5px; color:var(--text); }
+.more-menu a:hover{ background:var(--bg-elev-2); }
+
+.icon-btn{ width:36px;height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); background:var(--bg-elev); font-size:15px; position:relative; }
+.icon-btn:hover{ background:var(--bg-elev-2); }
+.dot-badge{ position:absolute; top:6px; right:6px; width:7px;height:7px;border-radius:50%; background:var(--loss); }
+.avatar{ width:34px;height:34px; border-radius:50%; background:var(--indigo); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
+.content{ padding:32px 0 60px; flex:1; }
+.page-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:10px;}
+.page-head h1{ font-size:28px; font-weight:600; }
+.page-head .sub{ color:var(--text-dim); font-size:13.5px; margin-top:4px; }
+
+.bottom-nav{ display:none; }
+
+/* dashboard */
+.stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;}
+.stat-card .l{ font-size:11px; color:var(--text-faint); margin-bottom:10px; text-transform:uppercase; letter-spacing:.07em; font-weight:700; }
+.stat-card .v{ font-family:'IBM Plex Mono',monospace; font-size:21px; font-weight:600; }
+.dash-2col{ display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:16px; }
+.tab-row{ display:flex; gap:4px; background:var(--bg-elev-2); padding:4px; border-radius:9px; width:fit-content; margin-bottom:14px;}
+.tab{ padding:6px 13px; border-radius:7px; font-size:12.5px; font-weight:600; color:var(--text-dim); }
+.tab.active{ background:var(--bg-elev); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.15); }
+.chart-box{ height:230px; }
+.quick-actions{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.qa-btn{ display:flex; flex-direction:column; align-items:center; gap:7px; padding:16px 8px; border:1px solid var(--border); border-radius:11px; background:var(--bg-elev); font-size:12px; font-weight:600; text-align:center;}
+.qa-btn:hover{ border-color:var(--accent); }
+.qa-btn .qi{ font-size:19px; }
+.progress-bar{ height:7px; border-radius:6px; background:var(--bg-elev-2); overflow:hidden; }
+.progress-bar > i{ display:block; height:100%; background:var(--accent); border-radius:6px; }
+.prog-row{ display:flex; align-items:center; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+
+/* watchlist / lists */
+.wl-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 6px; border-bottom:1px solid var(--border); }
+.wl-row:last-child{ border:none; }
+.ticker-tag{ width:38px;height:38px;border-radius:9px; background:var(--bg-elev); display:flex;align-items:center;justify-content:center; font-size:11px; font-weight:700; }
+.search-pill{ background:var(--bg-elev-2); border:1px solid transparent; border-radius:999px; padding:14px 20px; font-size:14px; }
+.market-list-card{ background:var(--bg-elev-2); border-radius:20px; padding:6px 18px; }
+.market-list-card .wl-row{ border-bottom-color:color-mix(in srgb, var(--border) 70%, var(--bg-elev-2)); }
+
+/* stock detail */
+.stock-head{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:14px;}
+.price-big{ font-family:'IBM Plex Mono',monospace; font-size:34px; font-weight:600; }
+.stat-mini-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.stat-mini{ padding:14px 0; }
+.stat-mini .l{ font-size:11.5px; color:var(--text-faint); margin-bottom:5px; }
+.stat-mini .v{ font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; }
+
+/* modal */
+.modal-overlay{ position:fixed; inset:0; background:rgba(4,6,10,.6); backdrop-filter:blur(2px); display:flex; align-items:center; justify-content:center; z-index:200; padding:20px;}
+.modal{ background:var(--bg-elev); border:1px solid var(--border); border-radius:16px; padding:26px; width:100%; max-width:440px; max-height:88vh; overflow-y:auto;}
+.modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.modal-head h3{ font-size:18px; }
+.x-btn{ width:30px;height:30px; border-radius:8px; display:flex;align-items:center;justify-content:center; color:var(--text-dim); font-size:16px;}
+.x-btn:hover{ background:var(--bg-elev-2); }
+.order-total{ display:flex; justify-content:space-between; padding:13px 0; border-top:1px solid var(--border); margin-top:6px; font-weight:700;}
+.seg{ display:flex; background:var(--bg-elev-2); border-radius:9px; padding:3px; margin-bottom:16px;}
+.seg > div{ flex:1; text-align:center; padding:8px; border-radius:7px; font-size:13px; font-weight:600; color:var(--text-dim); }
+.seg > div.active{ background:var(--bg-elev); color:var(--text); }
+
+/* learn */
+.cat-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;}
+.cat-tab{ padding:8px 15px; border-radius:20px; border:1px solid var(--border); font-size:13px; font-weight:600; color:var(--text-dim); }
+.cat-tab.active{ background:var(--accent); color:var(--accent-ink); border-color:transparent;}
+.lesson-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+.lesson-card{ padding:18px; transition:background .15s; }
+.lesson-card:hover{ background:var(--bg-elev-2); }
+.lesson-card h4{ font-size:15px; margin:0 0 6px; font-weight:700; font-family:'Fraunces',serif;}
+.lesson-card p{ font-size:13px; color:var(--text-dim); line-height:1.5; margin-bottom:0;}
+.check-circ{ width:22px;height:22px; border-radius:50%; border:1.5px solid var(--border); display:flex;align-items:center;justify-content:center; font-size:12px; flex-shrink:0;}
+.check-circ.done{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+.quiz-opt{ display:block; width:100%; text-align:left; padding:13px 15px; border:1.5px solid var(--border); border-radius:10px; margin-bottom:9px; font-size:14px; background:var(--bg-elev); color:var(--text); opacity:1; -webkit-text-fill-color:var(--text);}
+.quiz-opt:hover{ border-color:var(--text-faint); }
+.quiz-opt.correct{ border-color:var(--gain); background:rgba(23,214,180,.14); color:var(--text); -webkit-text-fill-color:var(--text); }
+.quiz-opt.wrong{ border-color:var(--loss); background:rgba(255,92,122,.14); color:var(--text); -webkit-text-fill-color:var(--text); }
+.quiz-opt:disabled{ cursor:default; color:var(--text); opacity:1; -webkit-text-fill-color:var(--text); }
+
+/* journal */
+.jr-card{ padding:18px; margin-bottom:12px; }
+.jr-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; flex-wrap:wrap; gap:8px;}
+.jr-meta{ display:flex; gap:14px; font-size:12.5px; color:var(--text-dim); flex-wrap:wrap; margin-bottom:10px;}
+.jr-note-row{ display:flex; gap:8px; font-size:13px; margin-top:4px; }
+.jr-note-row b{ color:var(--text-dim); min-width:110px; flex-shrink:0; font-weight:600;}
+.ai-box{ background:linear-gradient(155deg, color-mix(in srgb, var(--indigo) 10%, transparent), color-mix(in srgb, var(--accent) 8%, transparent)); border:1px solid var(--border); border-radius:16px; padding:18px; }
+.ai-tag{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--indigo); margin-bottom:10px;}
+
+/* pricing */
+.price-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:20px; max-width:720px; margin:0 auto;}
+.price-card{ padding:30px; border:1.5px solid var(--border); border-radius:18px; }
+.price-card.pro{ border-color:var(--accent); background:linear-gradient(160deg, rgba(23,214,180,.06), transparent); position:relative;}
+.price-amt{ font-family:'IBM Plex Mono',monospace; font-size:38px; font-weight:700; margin:14px 0 4px;}
+.price-list{ margin:20px 0; display:flex; flex-direction:column; gap:11px; font-size:13.8px;}
+.price-list li{ display:flex; gap:9px; align-items:flex-start; }
+
+.empty-state{ text-align:center; padding:60px 20px; }
+.empty-state .ei{ font-size:34px; margin-bottom:14px; }
+.empty-state h3{ font-size:17px; margin-bottom:6px; }
+.empty-state p{ color:var(--text-dim); font-size:13.5px; margin-bottom:18px; }
+
+.donut-legend{ display:flex; flex-direction:column; gap:9px; margin-top:14px;}
+.dl-row{ display:flex; align-items:center; gap:9px; font-size:13px;}
+.dl-sw{ width:10px;height:10px;border-radius:3px;}
+.score-ring-wrap{ display:flex; align-items:center; gap:22px; }
+.score-num{ font-family:'IBM Plex Mono',monospace; font-size:40px; font-weight:700;}
+.subscore-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:13px;}
+.subscore-row .bar{ width:110px; }
+
+.lb-row{ display:flex; align-items:center; gap:12px; padding:12px 6px; border-bottom:1px solid var(--border); }
+.lb-row:last-child{ border:none; }
+.lb-rank{ width:26px; font-family:'IBM Plex Mono',monospace; color:var(--text-faint); font-weight:600;}
+.lb-row.me{ background:color-mix(in srgb, var(--accent) 8%, transparent); border-radius:12px; }
+
+@media (max-width: 980px){
+  .hero-grid{ grid-template-columns:1fr; }
+  .hero h1{ font-size:38px; }
+  .how-grid{ grid-template-columns:1fr 1fr; }
+  .feat-grid{ grid-template-columns:1fr 1fr; }
+  .price-grid{ grid-template-columns:1fr; }
+  .stat-grid{ grid-template-columns:repeat(2,1fr); }
+  .dash-2col{ grid-template-columns:1fr; }
+  .lesson-grid{ grid-template-columns:1fr; }
+  .app-nav-bar{ display:none; }
+  .bottom-nav{ display:flex; position:fixed; bottom:0; left:0; right:0; height:60px; background:var(--bg-elev); border-top:1px solid var(--border); z-index:60; justify-content:space-around; align-items:center; padding:0 4px;}
+  .content{ padding-bottom:80px; }
+  .nav-links{ display:none; }
+  .stat-mini-grid{ grid-template-columns:1fr 1fr; }
+}
+@media (max-width: 620px){
+  .how-grid, .feat-grid, .lesson-grid{ grid-template-columns:1fr; }
+  .stat-grid{ grid-template-columns:1fr 1fr; }
+  .hero h1{ font-size:32px; }
+  .container{ padding:0 16px; }
+  .opt-grid{ grid-template-columns:1fr; }
+  .app-header-row{ height:auto; padding:10px 0; flex-wrap:wrap; gap:8px; }
+  .topbar-right{ gap:6px !important; flex-wrap:wrap; }
+  .topbar-right .icon-btn{ display:none; }
+  .level-pill{ font-size:11px; padding:6px 10px; white-space:nowrap; }
+  .topbar-right .btn-sm{ padding:6px 11px; font-size:12.5px; }
+  .more-menu{ right:auto; left:0; }
+  .brand-sub{ display:none; }
+  .landing-nav .container{ padding:14px 16px; }
+  .desktop-only-table{ display:none; }
+  .mobile-only-cards{ display:block; }
+  .modal{ max-height:88vh; overflow-y:auto; }
+  .modal-overlay{ align-items:flex-end; }
+  .search-pill{ padding:12px 16px; font-size:13.5px; }
+  .dash-2col{ gap:12px; }
+}
+.mobile-only-cards{ display:none; }
+.holding-card{ background:var(--bg-elev); border-radius:12px; padding:14px; margin-bottom:10px; cursor:pointer; }
+.bn-link{ display:flex; flex-direction:column; align-items:center; gap:3px; font-size:9.5px; color:var(--text-faint); padding:6px 8px; font-weight:600;}
+.bn-link.active{ color:var(--accent); }
+.bn-link .ic{ font-size:17px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+<script>
+/* =========================================================================
+   TRADEWISE BACKEND INTEGRATION — Supabase auth + Postgres persistence.
+   This is the ONLY layer that talks to Supabase. Frontend state (S) is
+   hydrated from here on login, and every mutating user action writes
+   through to the database here. No API keys of any kind live in this file.
+   ========================================================================= */
+const SUPA_URL = 'https://ludmrktyyvrbfytvwjin.supabase.co';
+const SUPA_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1ZG1ya3R5eXZyYmZ5dHZ3amluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzA1MTYsImV4cCI6MjEwMzc0NjUxNn0.my8EdhCR1hXQK3t3DbYgvE_p3LWuYFeND-QsJc5P2J0';
+let sb = null;
+let BACKEND_UNAVAILABLE = false;
+try{
+  if(!window.supabase) throw new Error('Supabase SDK failed to load (network/ad-blocker?)');
+  sb = window.supabase.createClient(SUPA_URL, SUPA_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+}catch(e){
+  console.error('Backend unavailable:', e);
+  BACKEND_UNAVAILABLE = true;
+}
+
+let AUTH_ERROR = null; // shown inline on the auth form
+let AUTH_BUSY = false;
+
+async function callAI(feature, prompt){
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session) throw new Error('Not signed in.');
+  const resp = await fetch(SUPA_URL + '/functions/v1/ai-proxy', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
+    body: JSON.stringify({ feature, prompt })
+  });
+  let body;
+  try{ body = await resp.json(); }catch(e){ throw new Error('AI service returned an unexpected response.'); }
+  if(!resp.ok) throw new Error((body && body.error) || ('AI service error (' + resp.status + ')'));
+  return body.result;
+}
+
+/* ---------- AUTH ---------- */
+async function realSignUp(name, email, password, confirmPassword){
+  AUTH_ERROR = null;
+  if(BACKEND_UNAVAILABLE){ AUTH_ERROR = 'Cannot reach the backend service right now. Please refresh and try again.'; render(); return; }
+  if(!name || !name.trim()) { AUTH_ERROR = 'Please enter your name'; render(); return; }
+  if(!/^\S+@\S+\.\S+$/.test(email||'')) { AUTH_ERROR = 'Please enter a valid email address'; render(); return; }
+  if(!password || password.length < 8) { AUTH_ERROR = 'Password must be at least 8 characters'; render(); return; }
+  if(password !== confirmPassword) { AUTH_ERROR = 'Passwords do not match'; render(); return; }
+  AUTH_BUSY = true; render();
+  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
+  AUTH_BUSY = false;
+  if(error){
+    if(/already registered|already exists|User already registered/i.test(error.message)) AUTH_ERROR = 'An account with this email already exists. Try logging in instead.';
+    else AUTH_ERROR = error.message;
+    render(); return;
+  }
+  if(data.session){
+    await hydrateUserData();
+    authDraft={name:'',email:'',pass:'',pass2:''};
+    S.authMode='onboard'; S.onboardStep=0; render();
+  } else {
+    AUTH_ERROR = null;
+    S.authMode='login';
+    render();
+    toast('Account created — check your email to confirm, then log in.', '📧');
+  }
+}
+async function realLogin(email, password){
+  AUTH_ERROR = null;
+  if(BACKEND_UNAVAILABLE){ AUTH_ERROR = 'Cannot reach the backend service right now. Please refresh and try again.'; render(); return; }
+  if(!/^\S+@\S+\.\S+$/.test(email||'')) { AUTH_ERROR = 'Please enter a valid email address'; render(); return; }
+  if(!password) { AUTH_ERROR = 'Please enter your password'; render(); return; }
+  AUTH_BUSY = true; render();
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  AUTH_BUSY = false;
+  if(error){
+    if(/Invalid login credentials/i.test(error.message)) AUTH_ERROR = 'Incorrect email or password.';
+    else if(/Email not confirmed/i.test(error.message)) AUTH_ERROR = 'Please confirm your email before logging in.';
+    else AUTH_ERROR = error.message;
+    render(); return;
+  }
+  await hydrateUserData();
+  authDraft={name:'',email:'',pass:'',pass2:''};
+  S.screen='app'; S.route='dashboard'; render();
+  toast('Welcome back, ' + (S.user.name||'Trader').split(' ')[0] + '!','👋');
+}
+async function realForgotPassword(email){
+  AUTH_ERROR = null;
+  if(BACKEND_UNAVAILABLE){ AUTH_ERROR = 'Cannot reach the backend service right now. Please refresh and try again.'; render(); return; }
+  if(!/^\S+@\S+\.\S+$/.test(email||'')) { AUTH_ERROR = 'Please enter a valid email address'; render(); return; }
+  AUTH_BUSY = true; render();
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+  AUTH_BUSY = false;
+  if(error){ AUTH_ERROR = error.message; render(); return; }
+  toast('Password reset link sent — check your email.', '📧');
+  S.authMode='login'; render();
+}
+async function realLogout(){
+  if(sb) await sb.auth.signOut();
+  Object.assign(S, freshLocalState());
+  S.screen='landing'; S.route='dashboard'; S.moreMenuOpen=false;
+  render(); toast('Signed out','👋');
+}
+
+/* ---------- DATA HYDRATION (on login / session restore) ---------- */
+async function hydrateUserData(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) return;
+  S.userId = user.id;
+  S.user.email = user.email;
+
+  const [profileRes, holdingsRes, txRes, watchRes, journalRes, lessonsRes, badgesRes, ordersRes, notifRes] = await Promise.all([
+    sb.from('profiles').select('*').eq('user_id', user.id).maybeSingle(),
+    sb.from('holdings').select('*').eq('user_id', user.id),
+    sb.from('transactions').select('*').eq('user_id', user.id).order('created_at',{ascending:false}),
+    sb.from('watchlist').select('ticker').eq('user_id', user.id),
+    sb.from('journal_entries').select('*').eq('user_id', user.id).order('created_at',{ascending:false}),
+    sb.from('completed_lessons').select('lesson_id').eq('user_id', user.id),
+    sb.from('badges').select('badge_id').eq('user_id', user.id),
+    sb.from('pending_orders').select('*').eq('user_id', user.id).order('created_at',{ascending:false}),
+    sb.from('notifications').select('*').eq('user_id', user.id).order('created_at',{ascending:false}).limit(20),
+  ]);
+
+  const p = profileRes.data;
+  if(p){
+    S.user.name = p.name || '';
+    S.user.experience = p.experience || '';
+    S.user.goals = p.goals || [];
+    S.user.plan = p.plan || 'free';
+    S.cash = Number(p.cash);
+    S.xp = p.xp;
+  }
+  S.holdings = {};
+  (holdingsRes.data||[]).forEach(function(h){ S.holdings[h.ticker] = {qty:Number(h.qty), avgPrice:Number(h.avg_price)}; });
+  S.transactions = (txRes.data||[]).map(function(t){ return {id:t.id, ticker:t.ticker, side:t.side, qty:Number(t.qty), price:Number(t.price), total:Number(t.qty)*Number(t.price), date:t.created_at.slice(0,10), orderType:t.order_type}; });
+  S.watchlist = (watchRes.data||[]).map(function(w){ return w.ticker; });
+  S.journal = (journalRes.data||[]).map(function(j){ return {id:j.id, ticker:j.ticker, side:j.side, entryPrice:j.entry_price, exitPrice:j.exit_price, reason:j.reasoning, notes:j.notes, whatWentWell:j.lessons_learned, date:j.created_at.slice(0,10)}; });
+  S.completedLessons = (lessonsRes.data||[]).map(function(l){ return l.lesson_id; });
+  S.badges = (badgesRes.data||[]).map(function(b){ return b.badge_id; });
+  S.pendingOrders = (ordersRes.data||[]).map(function(o){ return {id:o.id, ticker:o.ticker, side:o.side, qty:Number(o.qty), limitPrice:Number(o.limit_price), status:o.status, createdAt:o.created_at}; });
+  S.notifications = (notifRes.data||[]).map(function(n){ return {id:n.id, ic:n.icon, t:n.message, read:n.read}; });
+}
+function freshLocalState(){
+  return { userId:null, holdings:{}, transactions:[], watchlist:[], journal:[], completedLessons:[], badges:[],
+    pendingOrders:[], notifications:[], cash:100000, xp:0, user:{name:'',email:'',experience:'',goals:[],plan:'free'} };
+}
+
+/* ---------- WRITE-THROUGH PERSISTENCE ---------- */
+let _profileSaveTimer=null;
+function persistProfileSoon(){
+  if(!S.userId) return;
+  clearTimeout(_profileSaveTimer);
+  _profileSaveTimer = setTimeout(async function(){
+    const { error } = await sb.from('profiles').update({ cash:S.cash, xp:S.xp, name:S.user.name, experience:S.user.experience, goals:S.user.goals, onboarded:true, updated_at:new Date().toISOString() }).eq('user_id', S.userId);
+    if(error) console.warn('Profile save failed', error);
+  }, 400);
+}
+async function persistHolding(ticker){
+  if(!S.userId) return;
+  const h = S.holdings[ticker];
+  if(!h){ const r = await sb.from('holdings').delete().eq('user_id',S.userId).eq('ticker',ticker); if(r.error) console.warn(r.error); return; }
+  const { error } = await sb.from('holdings').upsert({ user_id:S.userId, ticker:ticker, qty:h.qty, avg_price:h.avgPrice, updated_at:new Date().toISOString() }, { onConflict:'user_id,ticker' });
+  if(error) console.warn('Holding save failed', error);
+}
+async function persistTransaction(tx){
+  if(!S.userId) return;
+  const { error } = await sb.from('transactions').insert({ user_id:S.userId, ticker:tx.ticker, side:tx.side, qty:tx.qty, price:tx.price, order_type:tx.orderType });
+  if(error) console.warn('Transaction save failed', error);
+}
+async function persistWatchlistAdd(ticker){ if(!S.userId) return; const r = await sb.from('watchlist').insert({user_id:S.userId, ticker:ticker}); if(r.error) console.warn(r.error); }
+async function persistWatchlistRemove(ticker){ if(!S.userId) return; const r = await sb.from('watchlist').delete().eq('user_id',S.userId).eq('ticker',ticker); if(r.error) console.warn(r.error); }
+async function persistJournalEntry(entry){
+  if(!S.userId) return null;
+  const { data, error } = await sb.from('journal_entries').insert({ user_id:S.userId, ticker:entry.ticker, side:entry.side, qty:entry.qty||null, entry_price:entry.entryPrice||null, exit_price:entry.exitPrice||null, reasoning:entry.reason||'', notes:entry.notes||'', lessons_learned:entry.whatWentWell||'',
+    details:{ strategy:entry.strategy||'', confidence:entry.confidence||null, expectedOutcome:entry.expectedOutcome||'', date:entry.date||null } }).select().single();
+  if(error){ console.warn('Journal save failed', error); return null; }
+  return data.id;
+}
+async function persistJournalUpdate(id, entry){
+  if(!S.userId || !id) return;
+  const { error } = await sb.from('journal_entries').update({ ticker:entry.ticker, side:entry.side, qty:entry.qty||null, entry_price:entry.entryPrice||null, exit_price:entry.exitPrice||null, reasoning:entry.reason||'', notes:entry.notes||'', lessons_learned:entry.whatWentWell||'',
+    details:{ strategy:entry.strategy||'', confidence:entry.confidence||null, expectedOutcome:entry.expectedOutcome||'', actualOutcome:entry.actualOutcome||'', whatWentWrong:entry.whatWentWrong||'', date:entry.date||null, exitDate:entry.exitDate||null } }).eq('id', id).eq('user_id', S.userId);
+  if(error) console.warn('Journal update failed', error);
+}
+async function persistLessonComplete(lessonId){ if(!S.userId) return; const r = await sb.from('completed_lessons').insert({user_id:S.userId, lesson_id:lessonId}); if(r.error && r.error.code!=='23505') console.warn(r.error); }
+async function persistBadge(badgeId){ if(!S.userId) return; const r = await sb.from('badges').insert({user_id:S.userId, badge_id:badgeId}); if(r.error && r.error.code!=='23505') console.warn(r.error); }
+async function persistXP(sourceKey, amount, reason){
+  if(!S.userId) return true;
+  const { error } = await sb.from('xp_events').insert({ user_id:S.userId, source_key:sourceKey, amount:amount, reason:reason });
+  if(error){ if(error.code==='23505') return false; console.warn('XP event save failed', error); }
+  return true;
+}
+async function persistNotifRead(id, allRead){
+  if(!S.userId) return;
+  if(allRead){ const r = await sb.from('notifications').update({read:true}).eq('user_id',S.userId); if(r.error) console.warn(r.error); }
+  else { const r = await sb.from('notifications').update({read:true}).eq('id',id); if(r.error) console.warn(r.error); }
+}
+async function persistPendingOrder(order){
+  if(!S.userId) return null;
+  const { data, error } = await sb.from('pending_orders').insert({ user_id:S.userId, ticker:order.ticker, side:order.side, qty:order.qty, limit_price:order.limitPrice, status:'pending' }).select().single();
+  if(error){ console.warn('Pending order save failed', error); return null; }
+  return data.id;
+}
+async function persistOrderStatus(id, status){ if(!S.userId) return; const r = await sb.from('pending_orders').update({status:status, updated_at:new Date().toISOString()}).eq('id',id); if(r.error) console.warn(r.error); }
+
+/* ---------- SESSION BOOT ---------- */
+async function bootAuth(){
+  if(BACKEND_UNAVAILABLE){ render(); toast('Could not reach the backend service. You can browse, but sign-in and saving are unavailable right now.', '⚠️'); return; }
+  const { data: { session } } = await sb.auth.getSession();
+  if(session){
+    await hydrateUserData();
+    S.screen = 'app';
+    S.route = 'dashboard';
+  }
+  render();
+  startLimitOrderEngine();
+}
+if(sb) sb.auth.onAuthStateChange(function(event){ if(event==='SIGNED_OUT'){ Object.assign(S, freshLocalState()); } });
+
+/* ---------- LIMIT ORDER ENGINE ----------
+   Runs every 4s while the app tab is open: checks each pending order's
+   ticker against the current simulated price and executes it the moment
+   the condition is met (buy limit: price <= limit; sell limit: price >= limit). */
+function startLimitOrderEngine(){
+  if(window._limitEngineStarted) return;
+  window._limitEngineStarted = true;
+  setInterval(function(){
+    if(!S.userId || S.screen!=='app' || !S.pendingOrders) return;
+    let changed = false;
+    S.pendingOrders.forEach(function(o){
+      if(o.status!=='pending') return;
+      const s = stock(o.ticker);
+      const hit = o.side==='buy' ? s.price <= o.limitPrice : s.price >= o.limitPrice;
+      if(hit) executePendingOrder(o);
+      changed = changed || hit;
+    });
+    if(changed) render();
+  }, 4000);
+}
+function executePendingOrder(o){
+  const s = stock(o.ticker);
+  const total = o.qty * s.price;
+  if(o.side==='buy'){
+    if(total > S.cash){ return; }
+    S.cash -= total;
+    const h = S.holdings[s.t];
+    if(h){ h.avgPrice = (h.avgPrice*h.qty + total)/(h.qty+o.qty); h.qty += o.qty; } else S.holdings[s.t] = {qty:o.qty, avgPrice:s.price};
+    persistHolding(s.t);
+  } else {
+    const h = S.holdings[s.t];
+    if(!h || h.qty < o.qty) return;
+    S.cash += total;
+    h.qty -= o.qty; if(h.qty===0) delete S.holdings[s.t];
+    persistHolding(s.t);
+  }
+  o.status = 'executed';
+  persistOrderStatus(o.id, 'executed');
+  const tx = {id:Date.now(), ticker:s.t, side:o.side, qty:o.qty, price:s.price, total:total, date:new Date().toISOString().slice(0,10), orderType:'limit'};
+  S.transactions.unshift(tx); persistTransaction(tx);
+  persistProfileSoon();
+  toast('Limit ' + o.side + ' order filled: ' + o.qty + ' ' + s.t + ' @ ' + fmtINR(s.price,2), '✅');
+}
+function cancelPendingOrder(id){
+  const o = S.pendingOrders.find(function(x){ return x.id===id; }); if(!o || o.status!=='pending') return;
+  o.status='cancelled'; persistOrderStatus(id,'cancelled'); render();
+  toast('Order cancelled');
+}
+
+</script>
+<script>
+/* =========================================================================
+   TRADEWISE — Paper Trading & Learning Platform (frontend prototype)
+   All market data is simulated. No real-money trades are ever executed.
+   ========================================================================= */
+
+/* ---------------- MOCK MARKET DATA ---------------- */
+const STOCKS = [
+ {t:'TCS', name:'Tata Consultancy Services', sector:'Technology', base:3852.40, vol:0.16, marketCap:'₹14.1L Cr', pe:28.4, eps:135.6, roe:45.2, de:0.09, div:1.8, revGrowth:8.2, high52:4585, low52:3555, desc:"India's largest IT services company, providing consulting, technology and digital transformation solutions to enterprises across the globe."},
+ {t:'INFY', name:'Infosys', sector:'Technology', base:1842.10, vol:0.18, marketCap:'₹7.6L Cr', pe:26.1, eps:70.6, roe:31.8, de:0.06, div:2.4, revGrowth:6.4, high52:2010, low52:1420, desc:"A global leader in next-generation digital services and consulting, helping clients navigate their digital transformation."},
+ {t:'RELIANCE', name:'Reliance Industries', sector:'Energy', base:2984.75, vol:0.20, marketCap:'₹20.2L Cr', pe:24.3, eps:122.8, roe:9.7, de:0.35, div:0.4, revGrowth:11.1, high52:3220, low52:2510, desc:"A diversified conglomerate with interests in energy, petrochemicals, retail and digital telecommunications."},
+ {t:'HDFCBANK', name:'HDFC Bank', sector:'Banking', base:1728.30, vol:0.15, marketCap:'₹13.1L Cr', pe:19.2, eps:90.0, roe:16.8, de:0.0, div:1.2, revGrowth:14.5, high52:1880, low52:1420, desc:"India's largest private-sector bank, offering retail and wholesale banking, and a broad suite of financial services."},
+ {t:'ICICIBANK', name:'ICICI Bank', sector:'Banking', base:1256.90, vol:0.17, marketCap:'₹8.8L Cr', pe:18.4, eps:68.3, roe:17.9, de:0.0, div:0.9, revGrowth:16.2, high52:1360, low52:1000, desc:"A leading private-sector bank offering a wide range of banking products through its branches and subsidiaries."},
+ {t:'SBIN', name:'State Bank of India', sector:'Banking', base:832.50, vol:0.22, marketCap:'₹7.4L Cr', pe:10.8, eps:77.1, roe:18.4, de:0.0, div:1.7, revGrowth:12.0, high52:912, low52:680, desc:"India's largest public-sector bank, with an extensive branch network across the country and abroad."},
+ {t:'ITC', name:'ITC Limited', sector:'FMCG', base:468.20, vol:0.13, marketCap:'₹5.8L Cr', pe:27.6, eps:17.0, roe:26.3, de:0.0, div:3.6, revGrowth:7.0, high52:520, low52:398, desc:"A diversified FMCG major with leadership across cigarettes, packaged foods, personal care, and paperboards."},
+ {t:'LT', name:'Larsen & Toubro', sector:'Industrials', base:3640.60, vol:0.19, marketCap:'₹5.0L Cr', pe:33.5, eps:108.7, roe:14.1, de:0.6, div:0.8, revGrowth:15.8, high52:3950, low52:3100, desc:"A major engineering, construction, and technology conglomerate with a diversified project portfolio."},
+ {t:'HINDUNILVR', name:'Hindustan Unilever', sector:'FMCG', base:2418.90, vol:0.12, marketCap:'₹5.7L Cr', pe:52.3, eps:46.2, roe:19.5, de:0.0, div:1.9, revGrowth:5.1, high52:2780, low52:2170, desc:"India's largest fast-moving consumer goods company, with brands spanning home care, beauty and food."},
+ {t:'BHARTIARTL', name:'Bharti Airtel', sector:'Telecom', base:1584.30, vol:0.21, marketCap:'₹9.3L Cr', pe:68.4, eps:23.2, roe:22.1, de:0.9, div:0.6, revGrowth:18.9, high52:1750, low52:1180, desc:"A leading global telecommunications company offering mobile, broadband and digital services."},
+ {t:'MARUTI', name:'Maruti Suzuki', sector:'Automobile', base:12480.00, vol:0.17, marketCap:'₹3.9L Cr', pe:27.9, eps:447.0, roe:15.6, de:0.0, div:1.1, revGrowth:9.4, high52:13600, low52:10200, desc:"India's largest passenger-vehicle manufacturer with a wide range of cars and a vast dealer network."},
+ {t:'SUNPHARMA', name:'Sun Pharmaceutical', sector:'Healthcare', base:1742.40, vol:0.16, marketCap:'₹4.2L Cr', pe:34.2, eps:50.9, roe:15.2, de:0.05, div:0.8, revGrowth:10.6, high52:1920, low52:1420, desc:"India's largest pharmaceutical company, manufacturing and marketing generics, specialty and branded medicines."},
+ {t:'APOLLOHOSP', name:'Apollo Hospitals', sector:'Healthcare', base:6820.15, vol:0.20, marketCap:'₹0.98L Cr', pe:64.1, eps:106.4, roe:13.8, de:0.4, div:0.3, revGrowth:13.2, high52:7450, low52:5300, desc:"A leading integrated healthcare provider operating hospitals, pharmacies and diagnostic centres across India."},
+ {t:'TATAMOTORS', name:'Tata Motors', sector:'Automobile', base:948.70, vol:0.28, marketCap:'₹3.5L Cr', pe:11.9, eps:79.7, roe:28.4, de:0.7, div:0.6, revGrowth:6.8, high52:1180, low52:720, desc:"A major automobile manufacturer producing commercial and passenger vehicles, including Jaguar Land Rover."},
+];
+STOCKS.forEach(s=>{ s.prevClose = s.base; s.price = s.base; s.changePct = 0; });
+const SECTOR_LIST = [...new Set(STOCKS.map(s=>s.sector))];
+const SECTOR_COLORS = {Technology:'#7C8CFF', Banking:'#17D6B4', Healthcare:'#FFB648', Energy:'#FF5C7A', FMCG:'#4BC0F0', Telecom:'#C084FC', Automobile:'#F0A868', Industrials:'#B08968', Other:'#8A94A8'};
+
+const INDICES = [
+ {t:'NIFTY 50', base:24812.30, vol:0.09},
+ {t:'SENSEX', base:81640.55, vol:0.09},
+ {t:'NIFTY BANK', base:52180.75, vol:0.11},
+ {t:'NIFTY IT', base:41260.10, vol:0.14},
+];
+INDICES.forEach(i=>{ i.prevClose=i.base; i.price=i.base; i.changePct=0; });
+
+/* deterministic-ish pseudo random per seed string, for stable charts per session */
+function seededRand(seed){ let h=0; for(let i=0;i<seed.length;i++){ h=(h<<5)-h+seed.charCodeAt(i); h|=0;} return function(){ h = (h*1103515245+12345)&0x7fffffff; return (h%10000)/10000; }; }
+function genHistory(seedKey, base, n, vol){
+  const rnd = seededRand(seedKey);
+  let v = base*(1-vol*0.35), arr=[];
+  for(let i=0;i<n;i++){ v = v*(1 + (rnd()-0.47)*vol*0.09); arr.push(v); }
+  arr[arr.length-1] = base;
+  return arr;
+}
+const historyCache = {};
+function getHistory(ticker, base, vol, tf){
+  const points = {'1D':40,'1W':7*6,'1M':30,'3M':90,'6M':180,'1Y':52,'5Y':60,'All':52}[tf]||30;
+  const key = ticker+'_'+tf;
+  if(!historyCache[key]) historyCache[key] = genHistory(key, base, points, vol);
+  return historyCache[key];
+}
+
+/* ---------------- LEARNING CONTENT ---------------- */
+const LEARN_CATS = ['Beginner','Fundamental Analysis','Technical Analysis','Risk Management','Portfolio Management'];
+const LEARN_CAT_SUB = {
+  'Beginner':'The vocabulary and mechanics of the market.',
+  'Fundamental Analysis':'Reading a business through its numbers.',
+  'Technical Analysis':'What price and volume behaviour can and cannot tell you.',
+  'Risk Management':'Protecting capital before chasing returns.',
+  'Portfolio Management':'Building and maintaining a whole portfolio.'
+};
+const LESSONS = [
+ // ---------- BEGINNER ----------
+ {id:'l1', cat:'Beginner', title:'What is a Stock?', sub:'A share is a slice of ownership in a real business.', mins:4, quizCount:2,
+  body:"A stock (or share) represents a small slice of ownership in a company. When you buy a stock, you become a part-owner of that business — entitled to a share of its profits and, sometimes, a vote on major decisions.\n\nCompanies sell shares to raise money for growth, and investors buy them hoping the company (and the share price) grows over time.",
+  example:"If a company has 1,000,000 shares and you own 1,000 of them, you own 0.1% of that company.",
+  takeaway:"Owning a stock means owning a small piece of a real business — its value rises and falls with that business's fortunes.",
+  quiz:{q:'What does owning a stock actually represent?', options:['A loan you gave the company','A small ownership stake in the company','A guaranteed fixed return','A government bond'], correct:1}},
+ {id:'l2', cat:'Beginner', title:'What is the Stock Market?', sub:'A regulated marketplace matching buyers and sellers of securities.', mins:4, quizCount:1,
+  body:"The stock market is a regulated marketplace — like the NSE or BSE in India — where buyers and sellers come together to trade shares of publicly listed companies.\n\nRegulators like SEBI set the rules that keep trading fair and transparent, so prices reflect genuine buying and selling activity rather than manipulation.",
+  example:"When you place a buy order for TCS shares, the exchange automatically matches it with someone else's sell order at an agreeable price.",
+  takeaway:"The stock market is simply an organised, regulated place for matching buyers with sellers.",
+  quiz:{q:'The stock market is best described as:', options:['A single company that sells shares','A regulated marketplace matching buyers and sellers','A government savings scheme','A type of bank account'], correct:1}},
+ {id:'l3', cat:'Beginner', title:'How Exchanges Work', sub:'Order books, matching, and why liquidity matters.', mins:5, quizCount:1,
+  body:"A stock exchange keeps an 'order book' — a running list of buy and sell orders at different prices. When a buy order and a sell order agree on price, a trade executes.\n\nLiquidity describes how easily a stock can be bought or sold without moving its price much. Highly liquid stocks (like large, popular companies) have many buyers and sellers at any moment; illiquid stocks can be harder to trade at a fair price.",
+  example:"If a stock is priced at ₹100 and a wave of buyers steps in, the price may be pushed up to ₹102 as sellers ask for more.",
+  takeaway:"Prices move based on the constant push and pull between buyers and sellers on the exchange's order book.",
+  quiz:{q:'What mainly causes a stock price to rise?', options:['The company prints new shares','More buying pressure than selling pressure','The government sets a new price','It always rises on Mondays'], correct:1}},
+ {id:'l4', cat:'Beginner', title:'Market Capitalisation', sub:"Company size, measured by the market's own price.", mins:3, quizCount:1,
+  body:"Market capitalisation (market cap) is the total value the market places on a company: its current share price multiplied by the total number of outstanding shares.\n\nCompanies are often grouped as large-cap, mid-cap, or small-cap based on this figure — a rough proxy for size and stability, though not the whole story.",
+  example:"A company with 10 crore shares trading at ₹500 each has a market cap of ₹5,000 crore.",
+  takeaway:"Market cap tells you how the market currently values a whole company — not whether its shares are cheap or expensive.",
+  quiz:{q:'Market capitalisation is calculated as:', options:['Revenue × Profit margin','Share price × total outstanding shares','Total assets − total liabilities','Yearly dividend × shares'], correct:1}},
+ {id:'l5', cat:'Beginner', title:'Bull vs Bear Markets', sub:'Naming the mood of a market — and why the label comes late.', mins:3, quizCount:1,
+  body:"A 'bull market' is a sustained period of rising prices and investor optimism. A 'bear market' is a sustained period of falling prices and pessimism, typically defined as a drop of 20%+ from recent highs.\n\nMarkets move in cycles — periods of growth are eventually followed by corrections, and vice versa. The label is usually only obvious in hindsight.",
+  example:"Between 2020–2021, many global markets were in a strong bull run. Sharp downturns, like early 2020, are examples of bear phases.",
+  takeaway:"Markets are cyclical — expect both bull and bear phases over a long investing journey.",
+  quiz:{q:"A 'bear market' generally refers to:", options:['A market only for banks','A sustained period of falling prices','A single bad trading day','A market that only goes up'], correct:1}},
+ {id:'l6', cat:'Beginner', title:'Dividends', sub:'How companies return cash to shareholders.', mins:4, quizCount:1,
+  body:"A dividend is a portion of a company's profit paid out directly to shareholders, usually on a quarterly or annual basis. Not all companies pay dividends — many growth companies reinvest profits back into the business instead.\n\nDividend yield expresses the annual dividend as a percentage of the current share price, making it easier to compare income across different stocks.",
+  example:"If a ₹500 stock pays a ₹10 annual dividend, its dividend yield is 2%.",
+  takeaway:"Dividends are one way companies share profits with owners — but a missing dividend doesn't automatically mean a company is unhealthy.",
+  quiz:{q:'Dividend yield is calculated as:', options:['Dividend ÷ Share price','Share price ÷ Dividend','Profit ÷ Revenue','Dividend × Shares owned'], correct:0}},
+
+ // ---------- FUNDAMENTAL ANALYSIS ----------
+ {id:'l7', cat:'Fundamental Analysis', title:'Revenue', sub:'The top line: what the business actually sold.', mins:3, quizCount:1,
+  body:"Revenue (also called 'sales' or the 'top line') is the total money a company earns from its core business before any expenses are subtracted.\n\nGrowing revenue shows a business is selling more — but revenue alone doesn't tell you if that growth is profitable.",
+  example:"A retailer that sells ₹50 crore worth of goods in a year reports ₹50 crore in revenue, regardless of how much it spent to sell them.",
+  takeaway:"Revenue measures scale and demand, not profitability — always read it alongside margins.",
+  quiz:{q:'Revenue is best described as:', options:['Profit after all expenses','Total money earned from core business before expenses','Cash sitting in the bank','Total value of company shares'], correct:1}},
+ {id:'l8', cat:'Fundamental Analysis', title:'Profit and Margins', sub:'What survives after the costs of doing business.', mins:4, quizCount:1,
+  body:"Profit is what remains after a company subtracts its costs from its revenue. Margins express profit as a percentage of revenue, making it easier to compare efficiency across companies of different sizes.\n\nA higher margin generally means a company keeps more of every rupee it earns — often a sign of pricing power or cost discipline.",
+  example:"A company with ₹100 crore revenue and ₹20 crore profit has a 20% profit margin.",
+  takeaway:"Margins reveal how efficiently a company turns sales into actual profit.",
+  quiz:{q:'A 20% profit margin means:', options:['20% of shares are owned by insiders','The company keeps ₹20 of profit for every ₹100 of revenue','Revenue grew 20% this year','20% of costs are fixed'], correct:1}},
+ {id:'l9', cat:'Fundamental Analysis', title:'Earnings Per Share (EPS)', sub:'Profit expressed per single share.', mins:3, quizCount:1,
+  body:"Earnings Per Share (EPS) is the portion of a company's profit allocated to each outstanding share, calculated as Net Profit ÷ Total Shares Outstanding.\n\nGrowing EPS over time is generally a healthy sign — it means profit is increasing faster than (or alongside) the share count.",
+  example:"If a company's net profit is ₹500 crore and it has 100 crore shares outstanding, EPS = ₹5.",
+  takeaway:"EPS turns total company profit into a per-share figure you can compare against the share price.",
+  quiz:{q:'EPS is calculated as:', options:['Revenue ÷ Shares','Net Profit ÷ Total Shares','Market Cap ÷ Revenue','Dividends ÷ Shares'], correct:1}},
+ {id:'l10', cat:'Fundamental Analysis', title:'The P/E Ratio', sub:'How many rupees you pay for one rupee of annual profit.', mins:4, quizCount:2,
+  body:"The Price-to-Earnings (P/E) ratio compares a company's share price to its earnings per share (EPS). It tells you how much investors are willing to pay for ₹1 of the company's profit.\n\nA high P/E can mean investors expect strong future growth (or that the stock is overvalued). A low P/E can mean the stock is undervalued (or that growth expectations are low).",
+  example:"A stock trading at ₹500 with an EPS of ₹25 has a P/E of 20 — investors are paying ₹20 for every ₹1 of annual profit.",
+  takeaway:"P/E is a useful starting point for valuation, but it's most meaningful when compared across similar companies in the same sector.",
+  quiz:{q:'A P/E ratio of 20 means investors are paying:', options:['₹20 for every ₹1 of yearly profit','20% interest per year','₹20 total for the stock','20 times the dividend'], correct:0}},
+ {id:'l11', cat:'Fundamental Analysis', title:'Return on Equity (ROE)', sub:'How efficiently a company turns shareholder money into profit.', mins:3, quizCount:1,
+  body:"Return on Equity (ROE) measures how efficiently a company generates profit from the money shareholders have invested in it, calculated as Net Profit ÷ Shareholder Equity.\n\nA consistently high ROE can signal a strong, efficiently-run business — but very high ROE can also come from heavy borrowing, so it's worth checking alongside debt levels.",
+  example:"A company with ₹50 crore in shareholder equity that earns ₹10 crore profit has an ROE of 20%.",
+  takeaway:"ROE shows how well management turns shareholders' capital into profit — but should be read alongside debt.",
+  quiz:{q:'Return on Equity is calculated as:', options:['Net Profit ÷ Revenue','Net Profit ÷ Shareholder Equity','Revenue ÷ Total Assets','Dividend ÷ Share Price'], correct:1}},
+ {id:'l12', cat:'Fundamental Analysis', title:'Debt-to-Equity', sub:'How much of the business is funded by borrowing.', mins:3, quizCount:1,
+  body:"The Debt-to-Equity (D/E) ratio compares a company's total debt to its shareholder equity, showing how much of the business is financed by borrowing versus owners' capital.\n\nA higher D/E means more reliance on debt, which can amplify both gains and losses — and adds risk if earnings fall while interest payments stay fixed.",
+  example:"A company with ₹40 crore in debt and ₹80 crore in equity has a debt-to-equity ratio of 0.5.",
+  takeaway:"Some debt is normal, but a rising debt-to-equity ratio is worth watching alongside a company's ability to pay it back.",
+  quiz:{q:'A high debt-to-equity ratio generally indicates:', options:['The company has no liabilities','Heavier reliance on borrowed money','Guaranteed higher profits','Lower business risk'], correct:1}},
+ {id:'l13', cat:'Fundamental Analysis', title:'Cash Flow', sub:'Profit is an opinion; cash is a fact.', mins:4, quizCount:1,
+  body:"Cash flow tracks the actual cash moving in and out of a business — separate from accounting profit, which can include non-cash items. A company can report a profit on paper while struggling with actual cash in the bank.\n\nOperating cash flow, in particular, shows whether the core business is generating real cash from its day-to-day operations.",
+  example:"A company might report ₹10 crore in profit but only ₹2 crore in actual operating cash flow if much of that profit is tied up in unpaid customer invoices.",
+  takeaway:"Strong, consistent operating cash flow is often a healthier sign than profit figures alone.",
+  quiz:{q:'Why can cash flow differ from reported profit?', options:['Profit always equals cash','Profit includes non-cash accounting items','Cash flow ignores expenses entirely','They are always identical'], correct:1}},
+
+ // ---------- TECHNICAL ANALYSIS ----------
+ {id:'l14', cat:'Technical Analysis', title:'Candlesticks', sub:'A compact way to read open, high, low and close.', mins:4, quizCount:1,
+  body:"A candlestick shows four prices for a period: open, high, low and close. The 'body' shows the range between open and close; the 'wicks' show the high and low reached during that period.\n\nA green/filled candle typically means the price closed higher than it opened. A red/hollow candle means it closed lower.",
+  example:"A long green candle with small wicks suggests strong, steady buying pressure throughout that period.",
+  takeaway:"Candlesticks compress a lot of price-action information — open, high, low, close — into one simple shape.",
+  quiz:{q:'A candlestick shows which four data points?', options:['Volume, RSI, MACD, Trend','Open, High, Low, Close','Buyers, Sellers, News, Sentiment','P/E, EPS, ROE, Dividend'], correct:1}},
+ {id:'l15', cat:'Technical Analysis', title:'Support & Resistance', sub:'Price zones where supply and demand have repeatedly met.', mins:4, quizCount:1,
+  body:"Support is a price level where a falling stock has historically found buyers, causing it to bounce. Resistance is a level where a rising stock has historically met sellers, causing it to pull back.\n\nThese levels form because traders remember past prices and often act around them — they are zones of past decision-making, not guaranteed floors or ceilings.",
+  example:"If a stock has bounced off ₹1,000 three times in the last year, traders may watch ₹1,000 as a support level.",
+  takeaway:"Support and resistance are useful reference zones, but prices can and do break through them.",
+  quiz:{q:'Support is best described as a level where a falling stock has:', options:['Always crashed further','Historically found buyers and bounced','Been delisted','Doubled in price'], correct:1}},
+ {id:'l16', cat:'Technical Analysis', title:'Moving Averages', sub:'Smoothing noisy price into a readable trend.', mins:4, quizCount:1,
+  body:"A moving average smooths out short-term price noise by averaging closing prices over a set period (like 50 or 200 days), making the underlying trend easier to see.\n\nWhen price trades above a rising moving average, it's often read as a sign of an uptrend; below a falling average, a downtrend.",
+  example:"A 50-day moving average that's sloping upward, with price consistently above it, is often read as a healthy short-term uptrend.",
+  takeaway:"Moving averages don't predict the future — they simply smooth the past to make trends easier to see.",
+  quiz:{q:'A moving average is primarily used to:', options:['Predict exact future prices','Smooth price data to reveal the underlying trend','Calculate dividend yield','Replace fundamental analysis entirely'], correct:1}},
+ {id:'l17', cat:'Technical Analysis', title:'Volume', sub:'How much conviction sits behind a price move.', mins:3, quizCount:1,
+  body:"Volume is the number of shares traded during a given period. It reflects how much conviction — or participation — is behind a price move.\n\nA price move on high volume is generally considered more meaningful than the same move on low volume, which may just be noise.",
+  example:"A stock jumping 5% on unusually high volume suggests strong, broad buying interest rather than a single small trade.",
+  takeaway:"Volume adds context to price moves — big moves on low volume deserve more scepticism.",
+  quiz:{q:'High volume behind a price move generally suggests:', options:['The move is likely meaningless','Stronger conviction behind the move','The stock will be delisted','Lower liquidity'], correct:1}},
+ {id:'l18', cat:'Technical Analysis', title:'Trends', sub:'Higher highs, lower lows, and long sideways stretches.', mins:3, quizCount:1,
+  body:"A trend describes the general direction prices are moving over time. An uptrend shows a pattern of higher highs and higher lows; a downtrend shows lower highs and lower lows. Prices can also move sideways for extended periods with no clear trend.\n\nRecognising the type of trend helps set realistic expectations rather than assuming every move continues forever.",
+  example:"A stock making higher highs and higher lows over several months is in a clear uptrend, even with normal day-to-day dips.",
+  takeaway:"Trends describe direction over time — not a guarantee that the direction continues.",
+  quiz:{q:'An uptrend is typically characterised by:', options:['Lower highs and lower lows','Higher highs and higher lows','No price movement at all','Random daily moves only'], correct:1}},
+ {id:'l19', cat:'Technical Analysis', title:'RSI', sub:'A momentum oscillator between 0 and 100.', mins:4, quizCount:1,
+  body:"The Relative Strength Index (RSI) is a momentum indicator scaled between 0 and 100 that measures the speed and size of recent price changes. Readings above 70 are often read as 'overbought'; below 30 as 'oversold'.\n\nRSI is a supporting tool, not a standalone signal — extreme readings can persist longer than expected in strong trends.",
+  example:"A stock with an RSI of 78 has risen sharply and quickly, which some traders read as a caution sign for a possible pause or pullback.",
+  takeaway:"RSI helps gauge momentum extremes, but should be combined with other context before acting on it.",
+  quiz:{q:'RSI is scaled between:', options:['-100 and 100','0 and 100','0 and 10','1 and 5'], correct:1}},
+
+ // ---------- RISK MANAGEMENT ----------
+ {id:'l20', cat:'Risk Management', title:'Diversification', sub:'Not letting one mistake decide your outcome.', mins:4, quizCount:1,
+  body:"Diversification means spreading your investments across different stocks, sectors, or asset classes so that no single position can severely damage your portfolio.\n\nIt doesn't eliminate risk, but it reduces the impact of any one company or sector performing badly.",
+  example:"A portfolio with 90% in one technology stock is far riskier than one spread across technology, banking, healthcare, and energy.",
+  takeaway:"Diversification trades away some upside concentration for meaningfully lower overall portfolio risk.",
+  quiz:{q:'The main purpose of diversification is to:', options:['Guarantee profits','Reduce the impact of any single position underperforming','Avoid paying taxes','Increase leverage'], correct:1}},
+ {id:'l21', cat:'Risk Management', title:'Position Sizing', sub:'Deciding how much, not just what.', mins:4, quizCount:1,
+  body:"Position sizing is deciding how much money to put into a single trade relative to your total capital. Even a great strategy can hurt you if any one position is too large.\n\nA common guideline is risking only a small, fixed percentage of your total capital on any single trade — often around 1–2%.",
+  example:"Risking 2% of your capital per trade means a string of losses is far less likely to wipe out your account than risking 20% per trade.",
+  takeaway:"How much you allocate to each trade often matters more to long-term results than which stock you pick.",
+  quiz:{q:'Position sizing is primarily concerned with:', options:['Which stock to pick','How much capital to risk on a single trade','The exact time of day to trade','The company\'s logo design'], correct:1}},
+ {id:'l22', cat:'Risk Management', title:'Risk vs Reward', sub:'Win rate and payoff size together decide the result.', mins:3, quizCount:1,
+  body:"Risk/reward ratio compares your potential loss to your potential gain on a trade. A common guideline is seeking at least 1:2 — risking ₹1 to potentially make ₹2 or more.\n\nA good risk/reward ratio can still lose money with a low win rate, and a poor ratio can still profit with a very high win rate — the two work together.",
+  example:"A trader who wins only 40% of trades can still be profitable if their average win is meaningfully larger than their average loss.",
+  takeaway:"Profitability depends on win rate and payoff size together, not either one alone.",
+  quiz:{q:'A 1:2 risk/reward ratio means you are:', options:['Risking ₹2 to make ₹1','Risking ₹1 to potentially make ₹2','Guaranteed to double your money','Splitting a trade in two'], correct:1}},
+ {id:'l23', cat:'Risk Management', title:'Volatility', sub:'How much and how fast prices move around.', mins:3, quizCount:1,
+  body:"Volatility measures how much and how quickly a stock's price swings, up or down, over a given period. Higher volatility means larger, faster price swings — both gains and losses can be bigger.\n\nVolatility isn't inherently bad, but it does mean more uncertainty in the short term, which matters for position sizing and risk tolerance.",
+  example:"A young technology stock might swing 5% in a single day, while a large, stable utility company might move less than 1%.",
+  takeaway:"Higher volatility means bigger potential swings in both directions — size positions accordingly.",
+  quiz:{q:'High volatility mainly indicates:', options:['Guaranteed losses','Larger and faster price swings','A company is about to be delisted','No trading activity'], correct:1}},
+ {id:'l24', cat:'Risk Management', title:'Drawdowns', sub:'The peak-to-trough fall — and the maths of recovery.', mins:4, quizCount:1,
+  body:"A drawdown measures how far a portfolio has fallen from its most recent peak. It's a key way to understand real, lived risk — not just average returns.\n\nRecovering from a drawdown gets mathematically harder the deeper it goes: a 50% loss requires a 100% gain just to break even.",
+  example:"A portfolio that falls from ₹1,00,000 to ₹80,000 has experienced a 20% drawdown, and needs a 25% gain to recover to its old peak.",
+  takeaway:"Deep drawdowns require disproportionately larger gains to recover — protecting capital matters as much as growing it.",
+  quiz:{q:'To recover from a 50% drawdown, a portfolio needs a gain of:', options:['50%','75%','100%','25%'], correct:2}},
+
+ // ---------- PORTFOLIO MANAGEMENT ----------
+ {id:'l25', cat:'Portfolio Management', title:'Asset Allocation', sub:'The split between asset classes drives most of your outcome.', mins:4, quizCount:1,
+  body:"Asset allocation is how you divide your capital across different asset classes and sectors based on your goals, time horizon, and risk tolerance.\n\nResearch consistently shows that the broad allocation decision tends to explain more of a portfolio's long-run results than the specific securities picked within it.",
+  example:"An investor with a long time horizon might allocate more heavily to equities, while someone nearing a goal might shift toward safer, lower-volatility holdings.",
+  takeaway:"Getting the broad allocation right matters more, over time, than picking the 'perfect' individual stock.",
+  quiz:{q:'Asset allocation primarily refers to:', options:['Picking the single best stock','Dividing capital across asset classes and sectors','Timing the market perfectly','Only investing in dividend stocks'], correct:1}},
+ {id:'l26', cat:'Portfolio Management', title:'Sector Diversification', sub:'Spreading exposure across different economic drivers.', mins:3, quizCount:1,
+  body:"Sector diversification means holding companies from different industries — like technology, banking, healthcare, and energy — rather than concentrating in just one.\n\nDifferent sectors often respond differently to the same economic conditions, so spreading exposure can smooth out a portfolio's overall ride.",
+  example:"Rising interest rates might pressure real estate stocks while benefiting bank stocks — a portfolio holding both is less exposed to either single outcome.",
+  takeaway:"Different sectors react differently to the same events — spreading across them reduces that single-sector risk.",
+  quiz:{q:'Sector diversification helps because different sectors:', options:['Always move in the exact same direction','Often respond differently to the same economic conditions','Are all equally risky','Never generate profit at the same time'], correct:1}},
+ {id:'l27', cat:'Portfolio Management', title:'Rebalancing', sub:'Returning the portfolio to its intended shape.', mins:4, quizCount:1,
+  body:"Over time, winners grow larger and losers shrink, drifting your portfolio away from its original target allocation. Rebalancing means periodically adjusting holdings back toward that target.\n\nThis often means trimming positions that have grown disproportionately large and adding to those that have fallen behind — a disciplined way of 'buying low, selling high'.",
+  example:"If technology grows from 25% to 45% of your portfolio after a rally, rebalancing might mean trimming some technology and adding to underweight sectors.",
+  takeaway:"A portfolio's allocation drifts on its own — rebalancing is how you keep risk in line with your original plan.",
+  quiz:{q:'Rebalancing a portfolio primarily means:', options:['Selling everything and starting over','Adjusting holdings back toward your target allocation','Buying only the top-performing stock','Switching to bonds permanently'], correct:1}},
+ {id:'l28', cat:'Portfolio Management', title:'Long-Term Investing', sub:'Compounding, costs and the value of staying invested.', mins:4, quizCount:1,
+  body:"Long-term investing relies on compounding — reinvested gains generating their own further gains over time — and tends to reduce the impact of short-term volatility and trading costs compared to frequent trading.\n\nStaying invested through market cycles, rather than trying to perfectly time entries and exits, has historically been a difficult strategy to consistently beat.",
+  example:"₹1,00,000 growing at an average 10% a year roughly doubles in about 7 years through the power of compounding alone.",
+  takeaway:"Time in the market, and the discipline to stay invested, is often a bigger driver of results than timing the market.",
+  quiz:{q:'Compounding refers to:', options:['A one-time fixed bonus','Reinvested gains generating further gains over time','A type of brokerage fee','Guaranteed annual returns'], correct:1}},
+];
+
+/* ---------------- BADGES ---------------- */
+const BADGE_DEFS = [
+ {id:'first_trade', icon:'🏆', label:'First Trade', desc:'Complete your first paper trade', check:S=>S.transactions.length>=1},
+ {id:'first_lesson', icon:'📚', label:'First Lesson', desc:'Complete your first lesson', check:S=>S.completedLessons.length>=1},
+ {id:'five_quiz', icon:'🧠', label:'5 Quizzes Completed', desc:'Pass 5 lesson quizzes', check:S=>S.completedLessons.length>=5},
+ {id:'portfolio_builder', icon:'📊', label:'Portfolio Builder', desc:'Hold 3+ different stocks', check:S=>Object.keys(S.holdings).length>=3},
+ {id:'fifty_trades', icon:'🎯', label:'10 Paper Trades', desc:'Complete 10 simulated trades', check:S=>S.transactions.length>=10},
+ {id:'journal_keeper', icon:'📝', label:'Journal Keeper', desc:'Log your first journal entry', check:S=>S.journal.length>=1},
+ {id:'week_streak', icon:'🔥', label:'Learning Streak', desc:'Complete lessons across categories', check:S=>new Set(S.completedLessons.map(id=>LESSONS.find(l=>l.id===id)?.cat)).size>=3},
+];
+
+/* ---------------- STATE ---------------- */
+const S = {
+  theme:'light', screen:'landing', authMode:'login', onboardStep:0,
+  userId:null,
+  user:{name:'', email:'', experience:'', goals:[], plan:'free'},
+  route:'dashboard', selectedTicker:'TCS',
+  cash:100000, holdings:{}, transactions:[], pendingOrders:[],
+  watchlist:['TCS','INFY','RELIANCE','HDFCBANK'],
+  journal:[], xp:0, completedLessons:[], badges:[],
+  learnCat:'Beginner', activeLessonId:null, quizState:{},
+  notifOpen:false, userMenuOpen:false, moreMenuOpen:false, searchQuery:'', dashTF:'1M', stockTF:'1M',
+  portfolioBaseHistory:null, aiExplainCache:{}, aiExplainLoading:false,
+  aiJournalResult:null, aiJournalLoading:false, aiJournalError:null,
+};
+let charts = {};
+
+function fmtINR(n, decimals=0){ const sign=n<0?'-':''; n=Math.abs(n); return sign+'₹'+n.toLocaleString('en-IN',{maximumFractionDigits:decimals, minimumFractionDigits:decimals}); }
+function fmtNum(n, d=2){ return n.toLocaleString('en-IN',{maximumFractionDigits:d, minimumFractionDigits:d}); }
+function pctStr(n){ return (n>=0?'+':'')+n.toFixed(2)+'%'; }
+function levelFromXP(xp){ const t=[0,100,300,600,1000,1500]; let lvl=1; for(let i=1;i<t.length;i++){ if(xp>=t[i]) lvl=i+1; } return Math.min(lvl,5); }
+const LEVEL_NAMES = {1:'Market Rookie',2:'Market Explorer',3:'Trading Apprentice',4:'Market Analyst',5:'Portfolio Pro'};
+function xpToNext(xp){ const t=[0,100,300,600,1000,1500]; const lvl=levelFromXP(xp); if(lvl>=5) return {cur:xp,next:xp,pct:100}; const lo=t[lvl-1], hi=t[lvl]; return {cur:xp-lo, next:hi-lo, pct:Math.round((xp-lo)/(hi-lo)*100)}; }
+
+function toast(msg, icon){ const w=document.getElementById('toastWrap'); const el=document.createElement('div'); el.className='toast'; el.innerHTML=(icon?icon+' ':'')+msg; w.appendChild(el); setTimeout(()=>el.remove(), 3600); }
+function addXP(n, reason, sourceKey){
+  S.xp += n; toast(`+${n} XP — ${reason}`, '⚡'); checkBadges(); render();
+  if(S.userId){
+    persistXP(sourceKey || ('trade:'+Date.now()+':'+Math.random().toString(36).slice(2)), n, reason).then(ok=>{
+      if(ok) persistProfileSoon();
+      else { S.xp -= n; render(); } // duplicate award rejected by DB — roll back optimistic local change
+    });
+  }
+}
+function checkBadges(){ BADGE_DEFS.forEach(b=>{ if(!S.badges.includes(b.id) && b.check(S)){ S.badges.push(b.id); toast(`Badge earned: ${b.label}`, b.icon); if(S.userId) persistBadge(b.id); } }); }
+
+function stock(ticker){ return STOCKS.find(s=>s.t===ticker); }
+function holdingsValue(){ return Object.entries(S.holdings).reduce((sum,[t,h])=> sum + h.qty*stock(t).price, 0); }
+function portfolioValue(){ return S.cash + holdingsValue(); }
+function todayPnL(){ return Object.entries(S.holdings).reduce((sum,[t,h])=>{ const st=stock(t); return sum + h.qty*(st.price-st.prevClose); },0); }
+function totalPnL(){ return portfolioValue()-100000; }
+
+/* live price jitter */
+function jitterMarket(){
+  STOCKS.forEach(s=>{ s.prevClose = s.price; const rnd=(Math.random()-0.5); s.price = Math.max(1, s.price*(1+rnd*s.vol*0.012)); s.changePct = (s.price-s.base)/s.base*100; });
+  INDICES.forEach(i=>{ i.prevClose=i.price; const rnd=(Math.random()-0.5); i.price=Math.max(1,i.price*(1+rnd*i.vol*0.006)); i.changePct=(i.price-i.base)/i.base*100; });
+  if(S.screen==='app') render();
+}
+setInterval(jitterMarket, 5000);
+
+/* ---------------- ROUTER / RENDER ---------------- */
+function nav(route, extra){ S.route=route; if(extra) Object.assign(S, extra); window.scrollTo(0,0); render(); }
+function setScreen(scr){ S.screen=scr; window.scrollTo(0,0); render(); }
+function toggleTheme(){ S.theme = S.theme==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme', S.theme); render(); }
+
+function render(){
+  const root = document.getElementById('root');
+  Object.values(charts).forEach(c=>{ try{c.destroy();}catch(e){} });
+  charts = {};
+  if(S.screen==='landing') root.innerHTML = renderLanding();
+  else if(S.screen==='auth') root.innerHTML = renderAuth();
+  else root.innerHTML = renderAppShell();
+  afterRender();
+}
+
+/* ================= LANDING ================= */
+function renderMarketingNav(){
+  return `<nav class="landing-nav"><div class="container">
+    <div class="brand" style="cursor:pointer;" onclick="setScreen('landing')"><div class="brand-mark">T</div>TradeWise <span class="brand-sub">Paper Market Studio</span></div>
+    <div class="nav-links">
+      <a href="#" onclick="setScreen('landing');setTimeout(()=>scrollToSection('how'),0);return false;">Learn</a>
+      <a href="#" onclick="setScreen('landing');setTimeout(()=>scrollToSection('features'),0);return false;">Practice</a>
+      <a href="#" onclick="setScreen('landing');setTimeout(()=>scrollToSection('safety'),0);return false;">Analyze</a>
+      <a href="#" onclick="setScreen('auth');S.authMode='pricing_preview';return false;">Pricing</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-ghost btn-sm" onclick="S.authMode='login';setScreen('auth')">Log in</button>
+      <button class="btn btn-dark btn-sm" onclick="S.authMode='signup';setScreen('auth')">Start free</button>
+    </div>
+  </div></nav>`;
+}
+function renderLanding(){
+  return `
+  ${renderMarketingNav()}
+
+  <header class="hero"><div class="container hero-grid">
+    <div>
+      <span class="pill pill-dot" style="margin-bottom:20px;"><i></i>₹1,00,000 virtual money · zero real risk</span>
+      <h1>Learn. Trade.<br/>Analyze. Improve.</h1>
+      <p class="lead">Master the stock market with zero real-money risk. Learn investing concepts, practice with virtual money, analyze your portfolio, and discover your trading habits.</p>
+      <div class="hero-ctas">
+        <button class="btn btn-primary" onclick="S.authMode='signup';setScreen('auth')">Start practicing</button>
+        <button class="btn btn-ghost" onclick="scrollToSection('features')">Explore learning</button>
+      </div>
+      <div class="trust-row">
+        <div class="trust-stat"><div class="n">62%</div><div class="l">avg. learning completion</div></div>
+        <div class="trust-stat"><div class="n">5</div><div class="l">market levels</div></div>
+        <div class="trust-stat"><div class="n">${LESSONS.length}</div><div class="l">core lessons</div></div>
+      </div>
+    </div>
+    <div class="mock-window">
+      <div class="mock-head-row">
+        <div><div class="mock-eyebrow">Your Portfolio</div><div class="mock-total">₹1,04,850</div></div>
+        <span class="mock-chip">+₹4,850 · 4.85%</span>
+      </div>
+      <div class="mock-inner-card">
+        <div class="mock-inner-top"><span>Today</span><span class="gain mono" style="font-weight:700;">+₹620</span></div>
+        <div class="mock-bars"><i style="height:28%"></i><i style="height:42%"></i><i style="height:34%"></i><i style="height:52%"></i><i style="height:64%"></i><i style="height:78%"></i><i style="height:100%"></i></div>
+      </div>
+      <div class="mock-list-row"><span class="mock-dot-lbl"><i style="background:var(--accent);"></i>Tata Consultancy</span><span class="mono">₹3,420 <span class="gain">+1.24%</span></span></div>
+      <div class="mock-list-row"><span class="mock-dot-lbl"><i style="background:var(--gain);"></i>HDFC Bank</span><span class="mono">₹1,720 <span class="gain">+1.10%</span></span></div>
+      <div class="mock-list-row"><span class="mock-dot-lbl"><i style="background:var(--amber);"></i>Infosys</span><span class="mono">₹1,580 <span class="loss">-0.40%</span></span></div>
+      <div class="mock-footer">
+        <div class="mock-footer-top"><span>Learning Progress</span><span>62%</span></div>
+        <div class="mock-progress"><i style="width:62%"></i></div>
+        <div class="mock-footer-sub">Technical Analysis · 60% — next up on your path</div>
+      </div>
+    </div>
+  </div></header>
+
+  <section class="section" id="how"><div class="container">
+    <div class="section-head"><div class="eyebrow">How it works</div><h2>Four quiet steps to trading confidence</h2></div>
+    <div class="how-grid">
+      <div class="how-card"><div class="n">01</div><h3>Learn</h3><p>Short lessons, visual examples, and mini quizzes from stocks to risk.</p></div>
+      <div class="how-card"><div class="n">02</div><h3>Practice</h3><p>Buy and sell with virtual money. No orders ever touch a real exchange.</p></div>
+      <div class="how-card"><div class="n">03</div><h3>Analyze</h3><p>Portfolio Doctor scores diversification, risk, and sector balance.</p></div>
+      <div class="how-card"><div class="n">04</div><h3>Improve</h3><p>Journal every trade and let patterns reveal your real habits.</p></div>
+    </div>
+  </div></section>
+
+  <section class="section" id="features"><div class="container">
+    <div class="feat-grid" style="margin-bottom:18px;">
+      <div class="feat-card"><div class="fi fi-sage">🩺</div><h3>Portfolio Doctor</h3><p>A health score with educational observations — never rigid buy/sell orders.</p>
+        <div class="progress-bar" style="margin-top:14px;"><i style="width:78%"></i></div></div>
+      <div class="feat-card"><div class="fi fi-rose">📝</div><h3>Trading Journal</h3><p>Record entry, strategy, and lessons. AI analysis surfaces your repeated patterns.</p>
+        <div style="display:flex;gap:8px;margin-top:14px;"><span class="pill">Win rate</span><span class="pill">Risk / reward</span></div></div>
+      <div class="feat-card"><div class="fi fi-peach">🏆</div><h3>Weekly Challenges</h3><p>Compete on risk-adjusted performance — return, volatility, and drawdown.</p>
+        <div style="margin-top:12px;">
+          <div class="feat-mini-row"><span class="dim">Alex</span><span class="gain mono">+7.8%</span></div>
+          <div class="feat-mini-row"><span class="dim">Rahul</span><span class="gain mono">+6.9%</span></div>
+          <div class="feat-mini-row" style="font-weight:700;">You<span class="gain mono">+5.4%</span></div>
+        </div></div>
+      <div class="feat-card"><div class="fi fi-mint">💹</div><h3>Virtual Trading</h3><p>Market and limit orders, average price tracking, realised and unrealised P&L.</p></div>
+      <div class="feat-card"><div class="fi fi-dark">🎓</div><h3>Interactive Learning</h3><p>${LESSONS.length} lessons across basics, fundamentals, technicals, risk and portfolio craft.</p></div>
+      <div class="feat-card"><div class="fi fi-sky">📈</div><h3>Performance Analytics</h3><p>Win rate, average win and loss, holding period and risk/reward from your own log.</p></div>
+    </div>
+  </div></section>
+
+  <section class="section" id="safety"><div class="container">
+    <div class="safety-box">
+      <div class="eyebrow eyebrow-light">A safe place to practice</div>
+      <h3>Practice with virtual money. Learn before you risk real money.</h3>
+      <p>Every price here is simulated for education. We never execute real trades and never present AI analysis as guaranteed advice or returns.</p>
+      <div class="safety-list">
+        <span class="pill">Virtual orders only</span>
+        <span class="pill">Market data labeled</span>
+        <span class="pill">No financial advice</span>
+      </div>
+    </div>
+  </div></section>
+
+  <footer><div class="container" style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+    <div class="brand" style="font-size:14px;"><div class="brand-mark" style="width:22px;height:22px;font-size:12px;">T</div>TradeWise</div>
+    <div>Educational paper-trading platform · Simulated data · Not financial advice</div>
+  </div></footer>
+  `;
+}
+function scrollToSection(id){ document.getElementById(id)?.scrollIntoView({behavior:'smooth'}); }
+
+/* ================= AUTH ================= */
+let authDraft = { name:'', email:'', pass:'', pass2:'' };
+function saveAuthDraft(){
+  const g = id => document.getElementById(id)?.value ?? '';
+  authDraft = { name:g('authName'), email:g('authEmail'), pass:g('authPass'), pass2:g('authPass2') };
+}
+function renderAuth(){
+  if(S.authMode==='onboard') return renderOnboarding();
+  const isSignup = S.authMode==='signup';
+  return `
+  ${renderMarketingNav()}
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-head">
+        <h1>${isSignup? 'Create your account' : (S.authMode==='forgot'?'Reset your password':'Welcome back')}</h1>
+        <p>${isSignup? 'Start with ₹1,00,000 in virtual money.' : (S.authMode==='forgot'? "We'll send a reset link to your email." : 'Pick up your simulated portfolio where you left off.')}</p>
+      </div>
+      ${AUTH_ERROR? `<div style="background:color-mix(in srgb, var(--loss) 12%, transparent);color:var(--loss);border-radius:10px;padding:11px 14px;font-size:13px;margin-bottom:16px;font-weight:600;">${AUTH_ERROR}</div>` : ''}
+      ${S.authMode==='forgot' ? `
+        <div class="field"><input id="authEmail" type="email" placeholder="you@example.com" value="${authDraft.email}"></div>
+        <button class="btn btn-primary btn-block" ${AUTH_BUSY?'disabled':''} onclick="saveAuthDraft();realForgotPassword(document.getElementById('authEmail').value)">${AUTH_BUSY?'Sending…':'Send reset link'}</button>
+        <div class="auth-switch">Remembered it? <a href="#" onclick="AUTH_ERROR=null;S.authMode='login';render();return false;">Back to log in</a></div>
+      ` : `
+        <button class="btn btn-google btn-block" disabled title="Google sign-in requires OAuth configuration by the site owner">Continue with Google <span class="faint" style="font-size:11px;">(not configured)</span></button>
+        <div class="divider">or use email</div>
+        ${isSignup? `<div class="field"><input id="authName" placeholder="Full name" value="${authDraft.name}"></div>` : ''}
+        <div class="field"><input id="authEmail" type="email" placeholder="you@example.com" value="${authDraft.email}"></div>
+        <div class="field"><input id="authPass" type="password" placeholder="Password" autocomplete="${isSignup?'new-password':'current-password'}" value="${authDraft.pass}"></div>
+        ${isSignup? `<div class="field"><input id="authPass2" type="password" placeholder="Confirm password" autocomplete="new-password" value="${authDraft.pass2}"></div>` : ''}
+        ${!isSignup? `<div style="text-align:right;margin-bottom:16px;"><a href="#" style="font-size:12.5px;color:var(--text-dim);" onclick="AUTH_ERROR=null;S.authMode='forgot';render();return false;">Forgot password?</a></div>`:''}
+        <button class="btn btn-primary btn-block" ${AUTH_BUSY?'disabled':''} onclick="${isSignup? "saveAuthDraft();realSignUp(document.getElementById('authName').value, document.getElementById('authEmail').value, document.getElementById('authPass').value, document.getElementById('authPass2').value)" : "saveAuthDraft();realLogin(document.getElementById('authEmail').value, document.getElementById('authPass').value)"}">${AUTH_BUSY? (isSignup?'Creating account…':'Logging in…') : (isSignup?'Create account':'Log in')}</button>
+        <div class="auth-switch">${isSignup? 'Already have an account?' : "New here?"} <a href="#" onclick="AUTH_ERROR=null;authDraft={name:'',email:'',pass:'',pass2:''};S.authMode='${isSignup?'login':'signup'}';render();return false;">${isSignup?'Log in':'Create an account'}</a></div>
+      `}
+    </div>
+  </div>`;
+}
+/* fake submitAuth() removed — replaced by realSignUp/realLogin/realForgotPassword in the backend module */
+function renderOnboarding(){
+  const steps=['experience','goals','ready'];
+  const step = steps[S.onboardStep];
+  const EXP=[{k:'Complete Beginner',i:'🌱',d:"I'm brand new to investing"},{k:'Beginner',i:'📘',d:'I know the basics'},{k:'Intermediate',i:'📈',d:'I trade sometimes'},{k:'Advanced',i:'🎯',d:'I actively invest/trade'}];
+  const GOALS=[{k:'Investing',i:'💼'},{k:'Trading',i:'⚡'},{k:'Technical Analysis',i:'📉'},{k:'Fundamental Analysis',i:'📑'},{k:'Portfolio Management',i:'🗂️'}];
+  let body='';
+  if(step==='experience'){
+    body=`<h2 class="serif" style="font-size:22px;margin-bottom:6px;">What's your experience level?</h2><p class="dim" style="font-size:13.5px;margin-bottom:20px;">This helps us personalize your learning dashboard.</p>
+    <div class="opt-grid">${EXP.map(e=>`<button class="opt-card ${S.user.experience===e.k?'sel':''}" onclick="S.user.experience='${e.k}';render()"><div class="oi">${e.i}</div><div class="ot">${e.k}</div><div class="od">${e.d}</div></button>`).join('')}</div>`;
+  } else if(step==='goals'){
+    body=`<h2 class="serif" style="font-size:22px;margin-bottom:6px;">What do you want to learn?</h2><p class="dim" style="font-size:13.5px;margin-bottom:20px;">Choose as many as you like.</p>
+    <div class="opt-grid">${GOALS.map(g=>`<button class="opt-card ${S.user.goals.includes(g.k)?'sel':''}" onclick="toggleGoal('${g.k}')"><div class="oi">${g.i}</div><div class="ot">${g.k}</div></button>`).join('')}</div>`;
+  } else {
+    body=`<div style="text-align:center;padding:10px 0;">
+      <div style="font-size:44px;margin-bottom:14px;">🎉</div>
+      <h2 class="serif" style="font-size:22px;margin-bottom:8px;">You're all set, ${S.user.name.split(' ')[0]||'Trader'}</h2>
+      <p class="dim" style="font-size:14px;margin-bottom:22px;">₹1,00,000 in virtual money has been added to your account. This is simulated money for practice only.</p>
+      <div class="card" style="text-align:left;background:var(--bg-elev-2);border:none;">
+        <div style="display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:8px;"><span class="dim">Experience level</span><b>${S.user.experience||'Beginner'}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span class="dim">Focus areas</span><b>${S.user.goals.join(', ')||'General'}</b></div>
+      </div>
+    </div>`;
+  }
+  return `<div class="auth-wrap"><div class="auth-card" style="max-width:460px;">
+    <div class="brand" style="justify-content:center;margin-bottom:22px;"><div class="brand-mark">T</div>TradeWise</div>
+    <div class="card">
+      <div class="onboard-progress">${steps.map((s,i)=>`<i class="${i<=S.onboardStep?'on':''}"></i>`).join('')}</div>
+      ${body}
+      <div style="display:flex;gap:10px;margin-top:24px;">
+        ${S.onboardStep>0? `<button class="btn btn-ghost" onclick="S.onboardStep--;render()">Back</button>`:''}
+        <button class="btn btn-primary btn-block" onclick="onboardNext()" ${step==='experience'&&!S.user.experience?'disabled':''}>${step==='ready'?'Go to Dashboard →':'Continue'}</button>
+      </div>
+    </div>
+  </div></div>`;
+}
+function toggleGoal(g){ const i=S.user.goals.indexOf(g); if(i>-1) S.user.goals.splice(i,1); else S.user.goals.push(g); render(); }
+function onboardNext(){
+  if(S.onboardStep<2){ S.onboardStep++; render(); }
+  else { S.screen='app'; S.route='dashboard'; render(); toast('₹1,00,000 virtual balance added','💰'); if(S.userId) persistProfileSoon(); }
+}
+</script>
+
+<script>
+/* ================= APP SHELL ================= */
+const NAV_ITEMS = [
+ {r:'dashboard', ic:'🏠', label:'Dashboard'},
+ {r:'markets', ic:'✅', label:'Markets'},
+ {r:'doctor', ic:'🩺', label:'Portfolio Doctor'},
+ {r:'journal', ic:'📝', label:'Journal'},
+ {r:'learn', ic:'🎓', label:'Learning Hub'},
+ {r:'challenges', ic:'🏆', label:'Challenges'},
+];
+const MORE_ITEMS = [
+ {r:'explore', ic:'🔍', label:'Explore Stocks'},
+ {r:'portfolio', ic:'💼', label:'Portfolio'},
+ {r:'watchlist', ic:'⭐', label:'Watchlist'},
+ {r:'profile', ic:'👤', label:'Profile'},
+ {r:'pricing', ic:'💎', label:'Pricing'},
+ {r:'settings', ic:'⚙️', label:'Settings'},
+];
+const BOTTOM_NAV = ['dashboard','markets','doctor','learn','profile'];
+
+function renderAppShell(){
+  const routeMap = {dashboard:renderDashboard, markets:renderMarkets, explore:renderExplore, stock:renderStockDetail,
+    portfolio:renderPortfolio, doctor:renderDoctor, journal:renderJournal, learn:renderLearn, challenges:renderChallenges,
+    watchlist:renderWatchlist, profile:renderProfile, pricing:renderPricing, settings:renderSettings};
+  const content = (routeMap[S.route]||renderDashboard)();
+  const lvl = levelFromXP(S.xp);
+  return `
+  <div class="app-shell">
+    <div class="app-header"><div class="container app-header-row">
+      <div class="brand" style="cursor:pointer;" onclick="nav('dashboard')"><div class="brand-mark">T</div>TradeWise</div>
+      <div class="topbar-right" style="display:flex;align-items:center;gap:10px;">
+        <span class="level-pill">Lv ${lvl} · ${LEVEL_NAMES[lvl]}</span>
+        <button class="icon-btn" onclick="S.notifOpen=!S.notifOpen;render()" title="Notifications">🔔${notifCount()>0?'<span class="dot-badge"></span>':''}</button>
+        <div class="more-menu-wrap">
+          <button class="btn btn-ghost btn-sm" onclick="S.moreMenuOpen=!S.moreMenuOpen;render()">More ▾</button>
+          ${S.moreMenuOpen? `<div class="more-menu">${MORE_ITEMS.map(n=>`<a href="#" onclick="S.moreMenuOpen=false;nav('${n.r}');return false;">${n.ic} ${n.label}</a>`).join('')}<div style="border-top:1px solid var(--border);margin:6px 0;"></div><a href="#" onclick="S.moreMenuOpen=false;toggleTheme();return false;">${S.theme==='dark'?'☀️':'🌙'} Toggle theme</a></div>` : ''}
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+    <nav class="app-nav-bar container">${NAV_ITEMS.map(n=>`<a href="#" class="app-nav-pill ${S.route===n.r?'active':''}" onclick="nav('${n.r}');return false;"><span class="ic">${n.ic}</span>${n.label}</a>`).join('')}</nav>
+    </div>
+    ${S.notifOpen? renderNotifPanel(): ''}
+    <div class="content container">${content}</div>
+  </div>
+  <nav class="bottom-nav">
+    ${BOTTOM_NAV.map(r=>{ const n=NAV_ITEMS.find(x=>x.r===r)||MORE_ITEMS.find(x=>x.r===r); return `<a href="#" class="bn-link ${S.route===r?'active':''}" onclick="nav('${r}');return false;"><span class="ic">${n.ic}</span>${n.label}</a>`; }).join('')}
+  </nav>
+  ${renderModals()}
+  `;
+}
+function logout(){ realLogout(); }
+function seedNotifications(){
+  if(S.notifications && S.notifications.length) return;
+  const ch = getCurrentChallenge();
+  const wlTicker = S.watchlist[0]||'TCS';
+  S.notifications = [
+    {id:'n1', ic:'📈', t:`${wlTicker} moved ${pctStr(stock(wlTicker).changePct)} today`, read:false},
+    {id:'n2', ic:'🔥', t:`You're on a learning streak — keep it going`, read:false},
+    {id:'n3', ic:'🏆', t:`Weekly challenge ${ch.endsText.toLowerCase()}`, read:false},
+    {id:'n4', ic:'🎯', t:`${S.completedLessons.length}/${LESSONS.length} lessons completed`, read:true},
+  ];
+}
+function notifCount(){ seedNotifications(); return S.notifications.filter(n=>!n.read).length; }
+function markAllNotifsRead(){ seedNotifications(); S.notifications.forEach(n=>n.read=true); if(S.userId) persistNotifRead(null,true); render(); }
+function markNotifRead(id){ seedNotifications(); const n=S.notifications.find(x=>x.id===id); if(n) n.read=true; if(S.userId) persistNotifRead(id,false); render(); }
+function renderNotifPanel(){
+  seedNotifications();
+  const items = S.notifications;
+  return `<div style="position:fixed;top:110px;right:26px;width:300px;background:var(--bg-elev);border:1px solid var(--border);border-radius:14px;z-index:100;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:700;font-size:14px;">Notifications</span>
+      ${items.some(i=>!i.read)? `<a href="#" style="font-size:12px;color:var(--accent);font-weight:600;" onclick="markAllNotifsRead();return false;">Mark all read</a>`:''}
+    </div>
+    ${items.length? items.map(i=>`<div onclick="markNotifRead('${i.id}')" style="display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;background:${i.read?'transparent':'color-mix(in srgb, var(--accent) 6%, transparent)'};"><span>${i.ic}</span><span class="dim" style="${i.read?'':'color:var(--text);font-weight:600;'}">${i.t}</span></div>`).join('') : `<div style="padding:20px 16px;font-size:13px;" class="dim">No notifications.</div>`}
+  </div>`;
+}
+
+/* ================= DASHBOARD ================= */
+function renderDashboard(){
+  const pv=portfolioValue(), tp=totalPnL(), td=todayPnL(), ret=(tp/100000*100);
+  const lvl=levelFromXP(S.xp), xn=xpToNext(S.xp);
+  const progPct = Math.round(S.completedLessons.length/LESSONS.length*100);
+  const hasHoldings = Object.keys(S.holdings).length>0;
+  return `
+  <div class="page-head"><div><h1>Good ${greetTime()}, ${(S.user.name||'Trader').split(' ')[0]}</h1><div class="sub">Simulated prices for practice — no real orders are placed.</div></div></div>
+
+  <div class="stat-grid">
+    <div class="card stat-card"><div class="l">Total Value</div><div class="v">${fmtINR(pv)}</div></div>
+    <div class="card stat-card"><div class="l">Total P&L</div><div class="v ${tp>=0?'gain':'loss'}">${tp>=0?'+':''}${fmtINR(tp)} · ${pctStr(ret)}</div></div>
+    <div class="card stat-card"><div class="l">Today</div><div class="v ${td>=0?'gain':'loss'}">${td>=0?'+':''}${fmtINR(Math.round(td))}</div></div>
+    <div class="card stat-card"><div class="l">Cash Available</div><div class="v">${fmtINR(S.cash)}</div></div>
+  </div>
+
+  <div class="dash-2col">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-weight:700;font-size:16px;font-family:'Fraunces',serif;">Holdings</div>
+        <a href="#" onclick="nav('explore');return false;" style="font-size:13px;color:var(--accent);font-weight:600;">Trade →</a>
+      </div>
+      ${hasHoldings? `<div style="margin-top:10px;">${renderHoldingsTable()}</div>
+        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div style="font-weight:700;font-size:13.5px;">Portfolio Performance <span class="faint" style="font-weight:400;font-size:11px;">· simulated historical performance</span></div>
+          <div class="tab-row" style="margin:0;">${['1D','1W','1M','3M','6M','1Y','All'].map(tf=>`<div class="tab ${S.dashTF===tf?'active':''}" onclick="S.dashTF='${tf}';render()">${tf}</div>`).join('')}</div>
+        </div>
+        <div class="chart-box" style="margin-top:12px;"><canvas id="dashChart"></canvas></div>` :
+       `<p class="dim" style="font-size:13.5px;padding:14px 2px 4px;">No positions yet. Head to Markets and place your first practice trade.</p>`}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="dark-card">
+        <div class="mini-eyebrow">Level ${lvl} · ${LEVEL_NAMES[lvl]}</div>
+        <div class="progress-bar" style="margin:12px 0 10px;"><i style="width:${xn.pct}%"></i></div>
+        <div style="font-size:12.5px;" class="dim">${S.xp} XP · ${xn.next-xn.cur} XP to ${LEVEL_NAMES[Math.min(lvl+1,5)]}</div>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;font-size:16px;font-family:'Fraunces',serif;margin-bottom:12px;">Next steps</div>
+        <button class="step-pill" onclick="nav('learn')">🎓 Continue a lesson</button>
+        <button class="step-pill" onclick="nav('doctor')">🩺 Run Portfolio Doctor</button>
+        <button class="step-pill" onclick="openJournalModal()">📝 Log a trade in your journal</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-2col">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-weight:700;font-size:15px;">Your Learning Progress: ${progPct}%</div>
+        <a href="#" onclick="nav('learn');return false;" style="font-size:12.5px;color:var(--accent);font-weight:600;">View all →</a>
+      </div>
+      <div class="progress-bar" style="margin-bottom:16px;"><i style="width:${progPct}%"></i></div>
+      ${LEARN_CATS.map(c=>{
+        const catLessons = LESSONS.filter(l=>l.cat===c); const done = catLessons.filter(l=>S.completedLessons.includes(l.id)).length;
+        const pct = Math.round(done/catLessons.length*100);
+        return `<div class="prog-row"><span>${c} ${pct===100?'✓':''}</span><span class="dim mono">${pct}%</span></div><div class="progress-bar" style="margin-bottom:12px;"><i style="width:${pct}%"></i></div>`;
+      }).join('')}
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px;">📅 Today's Market Challenge</div>
+      ${renderDailyChallenge()}
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Quick Actions</div>
+    <div class="quick-actions">
+      <button class="qa-btn" onclick="openTradeModal(S.watchlist[0]||'TCS','buy')"><span class="qi">🟢</span>Buy Stock</button>
+      <button class="qa-btn" onclick="openTradeModal(Object.keys(S.holdings)[0]||S.watchlist[0]||'TCS','sell')"><span class="qi">🔴</span>Sell Stock</button>
+      <button class="qa-btn" onclick="nav('explore')"><span class="qi">🔍</span>Search Stock</button>
+      <button class="qa-btn" onclick="nav('watchlist')"><span class="qi">⭐</span>Add to Watchlist</button>
+      <button class="qa-btn" onclick="openJournalModal()"><span class="qi">📝</span>Journal Trade</button>
+      <button class="qa-btn" onclick="nav('learn')"><span class="qi">🎓</span>Learn</button>
+    </div>
+  </div>
+  `;
+}
+function greetTime(){ const h=new Date().getHours(); return h<12?'morning':h<17?'afternoon':'evening'; }
+const DAILY_Q = {q:"Which factor can most directly increase a company's valuation?", options:['A shrinking customer base','Consistent growth in earnings and revenue','A higher number of outstanding shares','Increasing long-term debt'], correct:1,
+  explain:"Consistent earnings and revenue growth signals a healthier, more profitable business — which is typically what drives investors to value a company more highly over time."};
+function renderDailyChallenge(){
+  const answered = S.quizState['daily'];
+  return `<p class="dim" style="font-size:13.5px;margin-bottom:14px;">"${DAILY_Q.q}"</p>
+  <div>${DAILY_Q.options.map((o,i)=>`<button class="quiz-opt ${answered!=null?(i===DAILY_Q.correct?'correct':(i===answered?'wrong':'')):''}" onclick="answerDaily(${i})" ${answered!=null?'disabled':''}>${o}</button>`).join('')}</div>
+  ${answered!=null? `<p class="dim" style="font-size:12.5px;margin-top:8px;">${DAILY_Q.explain}</p>` : ''}`;
+}
+function answerDaily(i){ if(S.quizState['daily']!=null) return; S.quizState['daily']=i; if(i===DAILY_Q.correct) addXP(15,'Daily challenge','daily:'+new Date().toISOString().slice(0,10)); render(); }
+
+/* ================= MARKETS ================= */
+function renderMarketListRows(){
+  const q=(S.searchQuery||'').toLowerCase();
+  const list = STOCKS.filter(s=> !q || s.t.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+  return list.length? list.map(s=>`<div class="wl-row rowhover" onclick="nav('stock',{selectedTicker:'${s.t}'})">
+      <div><div style="font-weight:700;font-size:15px;">${s.t}</div><div class="dim" style="font-size:13px;">${s.name}</div></div>
+      <div style="text-align:right;"><div class="mono" style="font-size:15px;font-weight:600;">${fmtINR(s.price,2)}</div><div class="${s.changePct>=0?'gain':'loss'}" style="font-size:13px;">${pctStr(s.changePct)}</div></div>
+    </div>`).join('') : `<div class="empty-state"><div class="ei">🔍</div><h3>No stocks found</h3><p>Try a different name, ticker, or sector.</p></div>`;
+}
+let _marketSearchDebounce=null;
+function onMarketSearchInput(val){
+  S.searchQuery = val;
+  clearTimeout(_marketSearchDebounce);
+  _marketSearchDebounce = setTimeout(()=>{
+    const wrap = document.getElementById('marketListWrap');
+    if(wrap) wrap.innerHTML = renderMarketListRows(); // partial update only — input keeps focus, rest of page untouched
+  }, 120);
+}
+function renderMarkets(){
+  const gainers = [...STOCKS].sort((a,b)=>b.changePct-a.changePct).slice(0,5);
+  const losers = [...STOCKS].sort((a,b)=>a.changePct-b.changePct).slice(0,5);
+  const biggestMovers = [...STOCKS].sort((a,b)=>Math.abs(b.changePct)-Math.abs(a.changePct)).slice(0,5);
+  const sectorPerf = SECTOR_LIST.map(sec=>{ const list=STOCKS.filter(s=>s.sector===sec); const avg=list.reduce((a,s)=>a+s.changePct,0)/list.length; return {sec,avg}; }).sort((a,b)=>b.avg-a.avg);
+  return `
+  <div class="page-head"><div><h1>Markets</h1><div class="sub">Simulated NSE prices, updated for practice only.</div></div></div>
+  <input id="marketSearchInput" class="search-pill" style="margin-bottom:18px;" placeholder="Search TCS, INFY, HDFC Bank…" value="${S.searchQuery}" oninput="onMarketSearchInput(this.value)">
+  <div class="market-list-card" style="margin-bottom:20px;" id="marketListWrap">
+    ${renderMarketListRows()}
+  </div>
+
+  <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
+    ${INDICES.map(ix=>`<div class="card stat-card"><div class="l">${ix.t}</div><div class="v">${fmtNum(ix.price,2)}</div><div class="${ix.changePct>=0?'gain':'loss'}" style="font-size:12.5px;margin-top:4px;">${pctStr(ix.changePct)}</div></div>`).join('')}
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px;">NIFTY 50 <span class="faint" style="font-weight:400;font-size:12px;">· simulated historical performance</span></div>
+    <div class="chart-box"><canvas id="marketChart"></canvas></div>
+  </div>
+  <div class="dash-2col">
+    <div class="card">
+      <div style="font-weight:700;font-size:15px;margin-bottom:10px;">🟢 Top Gainers</div>
+      ${gainers.map(rowMini).join('')}
+      <div style="font-weight:700;font-size:15px;margin:18px 0 10px;">🔴 Top Losers</div>
+      ${losers.map(rowMini).join('')}
+      <div style="font-weight:700;font-size:15px;margin:18px 0 10px;">📊 Biggest Movers</div>
+      ${biggestMovers.map(rowMini).join('')}
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Sector Performance</div>
+      ${sectorPerf.map(sp=>`<div class="prog-row"><span>${sp.sec}</span><span class="${sp.avg>=0?'gain':'loss'} mono">${pctStr(sp.avg)}</span></div><div class="progress-bar" style="margin-bottom:12px;"><i style="width:${Math.min(100,Math.abs(sp.avg)*14+8)}%; background:${sp.avg>=0?'var(--gain)':'var(--loss)'}"></i></div>`).join('')}
+    </div>
+  </div>`;
+}
+function rowMini(s){ return `<div class="wl-row rowhover" onclick="nav('stock',{selectedTicker:'${s.t}'})"><div style="display:flex;align-items:center;gap:10px;"><div class="ticker-tag">${s.t.slice(0,3)}</div><div><div style="font-weight:600;font-size:13.5px;">${s.t}</div><div class="faint" style="font-size:11.5px;">${s.sector}</div></div></div><div style="text-align:right;"><div class="mono" style="font-size:13.5px;">${fmtINR(s.price,1)}</div><div class="${s.changePct>=0?'gain':'loss'}" style="font-size:12px;">${pctStr(s.changePct)}</div></div></div>`; }
+
+/* ================= EXPLORE ================= */
+function renderExplore(){
+  const q=(S.searchQuery||'').toLowerCase();
+  const list = STOCKS.filter(s=> !q || s.t.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.sector.toLowerCase().includes(q));
+  return `
+  <div class="page-head"><div><h1>Explore Stocks</h1><div class="sub">Search by company name, ticker, or sector.</div></div></div>
+  <div class="card" style="margin-bottom:16px;"><input placeholder="Search TCS, Infosys, Banking…" value="${S.searchQuery}" oninput="S.searchQuery=this.value;renderInto()"></div>
+  <div class="card" style="padding:8px 20px;">
+    ${list.length? list.map(s=>`<div class="wl-row rowhover" onclick="nav('stock',{selectedTicker:'${s.t}'})">
+      <div style="display:flex;align-items:center;gap:12px;"><div class="ticker-tag">${s.t.slice(0,3)}</div><div><div style="font-weight:600;">${s.t}</div><div class="faint" style="font-size:12px;">${s.name} · ${s.sector}</div></div></div>
+      <div style="text-align:right;"><div class="mono">${fmtINR(s.price,1)}</div><div class="${s.changePct>=0?'gain':'loss'}" style="font-size:12.5px;">${pctStr(s.changePct)}</div></div>
+    </div>`).join('') : `<div class="empty-state"><div class="ei">🔍</div><h3>No stocks found</h3><p>Try a different name, ticker, or sector.</p></div>`}
+  </div>`;
+}
+function renderInto(){ /* lightweight re-render just for explore search without full page jump */ document.getElementById('root').querySelector('.content').innerHTML = renderExplore(); }
+
+/* ================= STOCK DETAIL ================= */
+function renderStockDetail(){
+  const s = stock(S.selectedTicker) || STOCKS[0];
+  const h = S.holdings[s.t];
+  const inWatch = S.watchlist.includes(s.t);
+  const explain = S.aiExplainCache[s.t];
+  return `
+  <div class="page-head" style="margin-bottom:10px;"><a href="#" onclick="nav('explore');return false;" class="dim" style="font-size:13px;">← Back to Explore</a></div>
+  <div class="stock-head">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><h1 style="font-size:22px;">${s.t}</h1><span class="pill">${s.sector}</span><button class="icon-btn" style="width:30px;height:30px;font-size:14px;" onclick="toggleWatch('${s.t}')" title="Watchlist">${inWatch?'⭐':'☆'}</button></div>
+      <div class="faint" style="font-size:13px;margin-bottom:10px;">${s.name}</div>
+      <div style="display:flex;align-items:baseline;gap:12px;"><div class="price-big">${fmtINR(s.price,2)}</div><div class="${s.changePct>=0?'gain':'loss'}" style="font-weight:600;">${pctStr(s.changePct)} today</div></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" onclick="openTradeModal('${s.t}','buy')">BUY</button>
+      <button class="btn btn-loss" onclick="openTradeModal('${s.t}','sell')" ${!h?'disabled':''}>SELL</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <div class="tab-row" style="margin-bottom:0;">${['1D','1W','1M','6M','1Y','5Y'].map(tf=>`<div class="tab ${S.stockTF===tf?'active':''}" onclick="S.stockTF='${tf}';render()">${tf}</div>`).join('')}</div>
+      <span class="faint" style="font-size:11px;">Simulated historical performance</span>
+    </div>
+    <div class="chart-box"><canvas id="stockChart"></canvas></div>
+  </div>
+
+  <div class="dash-2col">
+    <div class="card">
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Overview</div>
+      <div class="stat-mini-grid">
+        <div class="stat-mini"><div class="l">Market Cap</div><div class="v">${s.marketCap}</div></div>
+        <div class="stat-mini"><div class="l">P/E</div><div class="v">${s.pe}</div></div>
+        <div class="stat-mini"><div class="l">EPS</div><div class="v">₹${s.eps}</div></div>
+        <div class="stat-mini"><div class="l">ROE</div><div class="v">${s.roe}%</div></div>
+        <div class="stat-mini"><div class="l">Debt/Equity</div><div class="v">${s.de}</div></div>
+        <div class="stat-mini"><div class="l">Dividend Yield</div><div class="v">${s.div}%</div></div>
+        <div class="stat-mini"><div class="l">Revenue Growth</div><div class="v">${s.revGrowth}%</div></div>
+        <div class="stat-mini"><div class="l">52W High / Low</div><div class="v" style="font-size:13px;">₹${s.high52} / ₹${s.low52}</div></div>
+      </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px;">About ${s.name}</div>
+        <p class="dim" style="font-size:13.5px;line-height:1.6;">${s.desc}</p>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-weight:700;font-size:15px;margin-bottom:12px;">Your Position</div>
+        ${h? `
+          <div class="prog-row"><span class="dim">Quantity</span><b class="mono">${h.qty}</b></div>
+          <div class="prog-row"><span class="dim">Average Price</span><b class="mono">${fmtINR(h.avgPrice,2)}</b></div>
+          <div class="prog-row"><span class="dim">Current Value</span><b class="mono">${fmtINR(h.qty*s.price,2)}</b></div>
+          <div class="prog-row"><span class="dim">P&L</span><b class="mono ${(s.price-h.avgPrice)>=0?'gain':'loss'}">${(s.price-h.avgPrice)*h.qty>=0?'+':''}${fmtINR((s.price-h.avgPrice)*h.qty,2)}</b></div>
+        ` : `<p class="dim" style="font-size:13px;">You don't own this stock yet.</p>`}
+      </div>
+      <div class="ai-box">
+        <div class="ai-tag">✨ AI Explanation</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:8px;">Explain this stock simply</div>
+        ${explain? `<p style="font-size:13.5px;line-height:1.6;white-space:pre-wrap;">${explain}</p>` :
+          S.aiExplainLoading? `<div style="display:flex;align-items:center;gap:8px;font-size:13px;" class="dim"><span class="spin"></span>Generating explanation…</div>` :
+          `<button class="btn btn-ghost btn-sm" onclick="explainStock('${s.t}')">Explain this stock simply</button>`}
+        <p class="faint" style="font-size:11px;margin-top:10px;">AI-generated analysis can be inaccurate and is not financial advice.</p>
+      </div>
+    </div>
+  </div>`;
+}
+function toggleWatch(t){ const i=S.watchlist.indexOf(t); if(i>-1){S.watchlist.splice(i,1); toast(`${t} removed from watchlist`); if(S.userId) persistWatchlistRemove(t);} else {S.watchlist.push(t); toast(`${t} added to watchlist`,'⭐'); if(S.userId) persistWatchlistAdd(t);} render(); }
+async function explainStock(ticker){
+  const s = stock(ticker);
+  if(!S.userId){ toast('Log in to use AI explanations'); return; }
+  S.aiExplainLoading = true; render();
+  try{
+    const prompt = `Explain the following stock simply for a beginner investor in 3-4 short sentences, plain language, no jargon, no markdown formatting, no headers. Do not give buy/sell recommendations or price predictions — just explain what the company does and what the numbers suggest about its profile.\n\nTicker: ${s.t}\nCompany: ${s.name}\nSector: ${s.sector}\nP/E: ${s.pe}\nEPS: ₹${s.eps}\nROE: ${s.roe}%\nDebt/Equity: ${s.de}\nDividend Yield: ${s.div}%\nRevenue Growth: ${s.revGrowth}%\nDescription: ${s.desc}`;
+    S.aiExplainCache[ticker] = await callAI('learning_assistant', prompt);
+  }catch(e){
+    S.aiExplainCache[ticker] = e.message && /not configured/i.test(e.message) ? "AI explanations aren't configured on this site yet." : "Couldn't generate an explanation right now — please try again.";
+  }
+  S.aiExplainLoading=false; render();
+}
+
+/* ================= PORTFOLIO ================= */
+function renderHoldingsTable(){
+  const rows = Object.entries(S.holdings);
+  const pv = portfolioValue();
+  if(rows.length===0) return '<p class="dim" style="font-size:13.5px;">No positions yet. Head to Markets and place your first practice trade.</p>';
+  const desktopTable = `<div class="table-scroll desktop-only-table"><table><thead><tr><th>Stock</th><th>Qty</th><th>Avg Price</th><th>Current Value</th><th>P&L</th><th>Portfolio %</th><th></th></tr></thead>
+    <tbody>${rows.map(([t,h])=>{ const s=stock(t); const cv=h.qty*s.price; const pnl=(s.price-h.avgPrice)*h.qty; const pct=(cv/pv*100); return `
+      <tr class="rowhover" onclick="nav('stock',{selectedTicker:'${t}'})">
+        <td><b>${t}</b><div class="faint" style="font-size:11.5px;">${s.sector}</div></td>
+        <td class="mono">${h.qty}</td>
+        <td class="mono">${fmtINR(h.avgPrice,2)}</td>
+        <td class="mono">${fmtINR(cv,2)}</td>
+        <td class="mono ${pnl>=0?'gain':'loss'}">${pnl>=0?'+':''}${fmtINR(pnl,2)}</td>
+        <td class="mono">${pct.toFixed(1)}%</td>
+        <td><button class="btn btn-loss btn-sm" onclick="event.stopPropagation();openTradeModal('${t}','sell')">Sell</button></td>
+      </tr>`;}).join('')}</tbody></table></div>`;
+  const mobileCards = `<div class="mobile-only-cards">${rows.map(([t,h])=>{ const s=stock(t); const cv=h.qty*s.price; const pnl=(s.price-h.avgPrice)*h.qty; const pct=(cv/pv*100); return `
+    <div class="holding-card" onclick="nav('stock',{selectedTicker:'${t}'})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><b>${t}</b><div class="faint" style="font-size:11px;">${s.sector}</div></div>
+        <div style="text-align:right;"><div class="mono" style="font-weight:600;">${fmtINR(cv,2)}</div><div class="mono ${pnl>=0?'gain':'loss'}" style="font-size:12px;">${pnl>=0?'+':''}${fmtINR(pnl,2)}</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:12.5px;" class="dim">
+        <span>${h.qty} shares @ ${fmtINR(h.avgPrice,2)}</span><span>${pct.toFixed(1)}% of portfolio</span>
+      </div>
+      <button class="btn btn-loss btn-sm btn-block" style="margin-top:10px;" onclick="event.stopPropagation();openTradeModal('${t}','sell')">Sell</button>
+    </div>`;}).join('')}</div>`;
+  return desktopTable + mobileCards;
+}
+function renderPortfolio(){
+  const rows = Object.entries(S.holdings);
+  const pv = portfolioValue();
+  const pending = (S.pendingOrders||[]).filter(o=>o.status==='pending');
+  return `
+  <div class="page-head"><div><h1>Portfolio</h1><div class="sub">${fmtINR(pv)} total value · ${fmtINR(S.cash)} in cash</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="nav('doctor')">🩺 Run Portfolio Doctor</button></div>
+  </div>
+  ${rows.length===0? `<div class="card empty-state"><div class="ei">💼</div><h3>No holdings yet.</h3><p>Your first paper trade is waiting.</p><button class="btn btn-primary" onclick="nav('explore')">Explore Stocks</button></div>` : `
+  <div class="card">${renderHoldingsTable()}</div>`}
+
+  <div class="card" style="margin-top:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:4px;">Pending Orders</div>
+    <p class="dim" style="font-size:12.5px;margin-bottom:12px;">Limit orders wait here until the simulated market price reaches your limit — checked automatically every few seconds.</p>
+    ${pending.length===0? `<p class="dim" style="font-size:13px;">No pending orders.</p>` : `
+    <div class="table-scroll"><table><thead><tr><th>Stock</th><th>Side</th><th>Qty</th><th>Limit Price</th><th>Current Price</th><th>Status</th><th>Created</th><th></th></tr></thead>
+    <tbody>${pending.map(o=>{ const s=stock(o.ticker); return `<tr>
+      <td><b>${o.ticker}</b></td>
+      <td>${o.side==='buy'?'🟢 Buy':'🔴 Sell'}</td>
+      <td class="mono">${o.qty}</td>
+      <td class="mono">${fmtINR(o.limitPrice,2)}</td>
+      <td class="mono">${fmtINR(s.price,2)}</td>
+      <td><span class="pill">Pending</span></td>
+      <td class="faint" style="font-size:11.5px;">${new Date(o.createdAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="cancelPendingOrder('${o.id}')">Cancel</button></td>
+    </tr>`;}).join('')}</tbody></table></div>`}
+    ${(S.pendingOrders||[]).some(o=>o.status!=='pending') ? `
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+      <div class="dim" style="font-size:12px;margin-bottom:8px;">Recently resolved</div>
+      ${(S.pendingOrders||[]).filter(o=>o.status!=='pending').slice(0,5).map(o=>`<div class="wl-row"><div><b>${o.ticker}</b> <span class="faint">${o.side} · ${o.qty} @ ${fmtINR(o.limitPrice,2)} limit</span></div><span class="pill">${o.status==='executed'?'Executed':'Cancelled'}</span></div>`).join('')}
+    </div>`:''}
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px;">Recent Transactions</div>
+    ${S.transactions.length===0? `<p class="dim" style="font-size:13px;">No transactions yet.</p>` :
+      S.transactions.slice(0,10).map(tx=>`<div class="wl-row"><div><b>${tx.side==='buy'?'🟢 Buy':'🔴 Sell'} ${tx.ticker}</b><div class="faint" style="font-size:11.5px;">${tx.qty} shares @ ${fmtINR(tx.price,2)} · ${tx.orderType==='limit'?'Limit · ':''}${tx.date}</div></div><div class="mono">${fmtINR(tx.total,2)}</div></div>`).join('')}
+  </div>`;
+}
+
+/* ================= PORTFOLIO DOCTOR ================= */
+function computeDoctor(){
+  const rows = Object.entries(S.holdings);
+  const pv = portfolioValue();
+  const hv = holdingsValue();
+  if(rows.length===0){
+    const cashRatio = 1;
+    return {overall:48, diversification:0, concentration:100, sectorBalance:100, risk:100, performance:45, cashDeployment:45,
+      sectorPct:[], maxSector:0, maxHolding:0, numSectors:0, cashRatio};
+  }
+  const bySector = {};
+  rows.forEach(([t,h])=>{ const s=stock(t); const val=h.qty*s.price; bySector[s.sector]=(bySector[s.sector]||0)+val; });
+  const sectorPct = Object.entries(bySector).map(([sec,val])=>({sec, pct: val/hv*100})).sort((a,b)=>b.pct-a.pct);
+  const numSectors = sectorPct.length;
+  const maxSector = sectorPct[0]?.pct||0;
+  const maxHolding = Math.max(...rows.map(([t,h])=> (h.qty*stock(t).price)/hv*100));
+  const diversification = Math.max(20, Math.min(100, 30 + numSectors*14 - Math.max(0,maxSector-40)*0.6));
+  const concentration = Math.max(15, Math.min(100, 100 - Math.max(0,maxHolding-25)*1.3));
+  const sectorBalance = Math.max(20, Math.min(100, 100 - (maxSector-100/Math.max(numSectors,1))*0.9));
+  const avgVol = rows.reduce((a,[t,h])=>a+stock(t).vol*(h.qty*stock(t).price/hv),0);
+  const risk = Math.max(15, Math.min(100, 100 - avgVol*220));
+  const cashRatio = S.cash/pv;
+  const cashDeployment = Math.round((1-cashRatio)*100);
+  const performance = Math.max(10, Math.min(100, 55 + (totalPnL()/100000*100)*4));
+  const overall = Math.round((diversification+concentration+sectorBalance+risk+performance)/5);
+  return {overall, diversification:Math.round(diversification), concentration:Math.round(concentration), sectorBalance:Math.round(sectorBalance), risk:Math.round(risk), performance:Math.round(performance), cashDeployment, sectorPct, maxSector, maxHolding, numSectors, cashRatio};
+}
+function renderDoctor(){
+  const d = computeDoctor();
+  const insights = [];
+  if(d.numSectors===0){
+    insights.push({ic:'💵',t:'No positions yet',d:'You have no positions yet — a first practice trade will unlock real diagnostics.'});
+    insights.push({ic:'✓',t:'Concentration',d:'No single position dominates your holdings right now.'});
+    if(d.cashRatio>0.5) insights.push({ic:'💵',t:'Cash deployment',d:'Most of your virtual money is idle cash. Deploying gradually is a common practice habit.'});
+  } else {
+  if(d.maxSector>45) insights.push({ic:'⚠️',t:'Concentration',d:`Your ${d.sectorPct[0].sec} exposure represents a large portion of your portfolio (${d.maxSector.toFixed(0)}%). Consider learning more about diversification.`});
+  else insights.push({ic:'✓',t:'Diversification',d:`Your portfolio is spread across ${d.numSectors} sector${d.numSectors>1?'s':''}, which helps reduce single-sector risk.`});
+  if(d.risk<55) insights.push({ic:'📊',t:'Risk',d:'Your portfolio contains several higher-volatility positions. Reviewing the Risk Management lessons may help.'});
+  else insights.push({ic:'✓',t:'Risk',d:'Your portfolio volatility looks moderate relative to your holdings.'});
+  if(d.cashRatio>0.5) insights.push({ic:'💵',t:'Cash Position',d:'A large share of your virtual balance is sitting in cash. That lowers risk, but also limits potential learning from active positions.'});
+  if(d.maxHolding>35) insights.push({ic:'⚠️',t:'Single-Stock Weight',d:`One holding makes up ${d.maxHolding.toFixed(0)}% of your invested value — worth exploring the Position Sizing lesson.`});
+  }
+  return `
+  <div class="page-head"><div><h1>Portfolio Doctor</h1><div class="sub">Educational observations about your simulated portfolio — not investment advice.</div></div></div>
+  <div class="dash-2col" style="align-items:stretch;margin-bottom:16px;">
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+      <div class="eyebrow" style="margin-bottom:14px;">Health score</div>
+      <div style="font-family:'Fraunces',serif;font-weight:600;font-size:56px;line-height:1;color:${d.overall>=70?'var(--gain)':d.overall>=45?'var(--amber)':'var(--loss)'}">${d.overall}</div>
+      <div class="dim" style="font-size:13px;margin-top:8px;">out of 100</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:600;font-size:14.5px;">Diversification</span><span class="mono">${d.diversification}</span></div></div>
+      <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><span style="font-weight:600;font-size:14.5px;">Concentration balance</span><span class="mono">${d.concentration}</span></div><div class="progress-bar"><i style="width:${d.concentration}%"></i></div></div>
+      <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><span style="font-weight:600;font-size:14.5px;">Cash deployment</span><span class="mono">${d.cashDeployment}</span></div><div class="progress-bar"><i style="width:${d.cashDeployment}%"></i></div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-weight:700;font-size:16px;font-family:'Fraunces',serif;margin-bottom:14px;">What we noticed</div>
+    ${insights.map(i=>`<div style="display:flex;gap:10px;padding:8px 0;"><span style="color:var(--accent);font-weight:700;">•</span><span style="font-size:13.8px;color:var(--text-dim);">${i.d}</span></div>`).join('')}
+  </div>
+  <div class="dash-2col" style="align-items:stretch;">
+    <div class="card">
+      <div style="font-weight:700;font-size:15px;margin-bottom:16px;">Score Breakdown</div>
+      <div class="score-ring-wrap">
+        <div class="score-num" style="color:${d.overall>=70?'var(--gain)':d.overall>=45?'var(--amber)':'var(--loss)'}">${d.overall}<span class="faint" style="font-size:16px;">/100</span></div>
+        <div style="flex:1;">
+          ${[['Diversification',d.diversification],['Risk',d.risk],['Sector Balance',d.sectorBalance],['Concentration',d.concentration],['Performance',d.performance]].map(([l,v])=>`
+          <div class="subscore-row"><span class="dim">${l}</span><div style="display:flex;align-items:center;gap:10px;"><div class="progress-bar bar"><i style="width:${v}%;background:${v>=70?'var(--gain)':v>=45?'var(--amber)':'var(--loss)'}"></i></div><span class="mono" style="width:26px;text-align:right;">${v}</span></div></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Portfolio Insights</div>
+      ${insights.length? insights.map(i=>`<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);"><span style="font-size:17px;">${i.ic}</span><div><b style="font-size:13.5px;">${i.t}</b><p class="dim" style="font-size:13px;margin-top:2px;">${i.d}</p></div></div>`).join('') : '<p class="dim" style="font-size:13.5px;">No further insights yet.</p>'}
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px;">Portfolio Allocation</div>
+    ${d.sectorPct.length? `<div style="display:flex;align-items:center;gap:20px;">
+        <div style="width:150px;height:150px;flex-shrink:0;"><canvas id="doctorDonut"></canvas></div>
+        <div class="donut-legend">${d.sectorPct.map(sp=>`<div class="dl-row"><span class="dl-sw" style="background:${SECTOR_COLORS[sp.sec]||SECTOR_COLORS.Other}"></span>${sp.sec} — ${sp.pct.toFixed(0)}%</div>`).join('')}</div>
+      </div>` : '<p class="dim" style="font-size:13.5px;">No positions yet — allocation chart appears after your first trade.</p>'}
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px;">Portfolio Breakdown</div>
+    ${renderHoldingsTable()}
+  </div>`;
+}
+
+/* ================= JOURNAL ================= */
+function renderJournal(){
+  const entries = [...S.journal].reverse();
+  return `
+  <div class="page-head"><div><h1>Trading Journal</h1><div class="sub">Write down why you traded — patterns show up faster than you expect.</div></div>
+    <button class="btn btn-primary" onclick="openJournalModal()">+ New Entry</button></div>
+  ${entries.length===0? `<div class="card" style="border-radius:28px;padding:26px 30px;"><p class="dim" style="font-size:14px;">No journal entries yet. After your next practice trade, note your setup, risk and what you would repeat.</p></div>` :
+    entries.map(e=>renderJournalCard(e)).join('')}
+
+  <div class="card" style="margin-top:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div><div style="font-weight:700;font-size:15px;">✨ Your Trading Patterns</div><div class="faint" style="font-size:12px;">AI analysis of your recorded journal entries</div></div>
+      ${S.user.plan==='pro'? `<button class="btn btn-ghost btn-sm" onclick="runAIJournalAnalysis()">${S.aiJournalLoading?'Analyzing…':'Analyze My Patterns'}</button>` : ''}
+    </div>
+    ${S.user.plan!=='pro'? `<div style="text-align:center;padding:20px;"><p class="dim" style="font-size:13.5px;margin-bottom:12px;">Full AI trading-pattern analysis is a Pro feature.</p><button class="btn btn-primary btn-sm" onclick="nav('pricing')">Upgrade to Pro</button></div>` :
+      S.aiJournalLoading? `<div style="display:flex;align-items:center;gap:8px;font-size:13.5px;" class="dim"><span class="spin"></span>Analyzing your recorded trades…</div>` :
+      S.aiJournalError? `<p class="loss" style="font-size:13.5px;">${S.aiJournalError}</p>` :
+      S.aiJournalResult? renderAIJournalResult(S.aiJournalResult) :
+      `<p class="dim" style="font-size:13px;">Click "Analyze My Patterns" once you've logged a few trades to see AI-surfaced strengths and areas to improve.</p>`}
+  </div>
+  `;
+}
+function closedStats(){
+  const closed = S.journal.filter(e=>e.exitPrice);
+  const n = closed.length;
+  if(n===0) return null;
+  const wins = closed.filter(e=> e.side==='buy'? e.exitPrice>e.entryPrice : e.exitPrice<e.entryPrice);
+  const losses = closed.filter(e=> !wins.includes(e));
+  const avgWin = wins.length? wins.reduce((a,e)=>a+Math.abs(e.exitPrice-e.entryPrice)*e.qty,0)/wins.length : 0;
+  const avgLoss = losses.length? losses.reduce((a,e)=>a+Math.abs(e.exitPrice-e.entryPrice)*e.qty,0)/losses.length : 0;
+  const avgHold = closed.reduce((a,e)=>{ const d1=new Date(e.date), d2=new Date(e.exitDate||e.date); return a+Math.max(0,(d2-d1)/86400000); },0)/n;
+  return {winRate: (wins.length/n*100), avgWin, avgLoss, avgHold, rr: avgLoss? (avgWin/avgLoss):0, n};
+}
+function renderJournalCard(e){
+  const closed = !!e.exitPrice;
+  const pnl = closed? (e.side==='buy'? (e.exitPrice-e.entryPrice) : (e.entryPrice-e.exitPrice))*e.qty : null;
+  return `<div class="card jr-card">
+    <div class="jr-top">
+      <div style="display:flex;align-items:center;gap:10px;"><span class="pill ${e.side==='buy'?'pill-accent':'pill-loss'}">${e.side.toUpperCase()}</span><b>${e.ticker}</b>${closed?`<span class="pill">Closed</span>`:`<span class="pill pill-amber">Open</span>`}</div>
+      <div style="display:flex;gap:8px;">
+        ${!closed? `<button class="btn btn-ghost btn-sm" onclick="openJournalModal('${e.id}',true)">Close Trade</button>`:''}
+        <button class="btn btn-ghost btn-sm" onclick="openJournalModal('${e.id}')">Edit</button>
+      </div>
+    </div>
+    <div class="jr-meta"><span>Qty: ${e.qty}</span><span>Entry: ${fmtINR(e.entryPrice,2)}</span><span>${e.date}</span>${closed?`<span>Exit: ${fmtINR(e.exitPrice,2)}</span><span class="${pnl>=0?'gain':'loss'}">${pnl>=0?'+':''}${fmtINR(pnl,2)}</span>`:''}</div>
+    <div class="jr-note-row"><b>Strategy</b><span class="dim">${e.strategy||'—'}</span></div>
+    <div class="jr-note-row"><b>Reason</b><span class="dim">${e.reason||'—'}</span></div>
+    ${closed && e.lessonLearned? `<div class="jr-note-row"><b>Lesson learned</b><span class="dim">${e.lessonLearned}</span></div>`:''}
+  </div>`;
+}
+function renderAIJournalResult(r){
+  return `
+  ${r.performance? `<div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat-card"><div class="l">Win Rate</div><div class="v">${r.performance.winRate}</div></div>
+    <div class="stat-card"><div class="l">Avg Win / Loss</div><div class="v" style="font-size:15px;">${r.performance.avgWin} / ${r.performance.avgLoss}</div></div>
+    <div class="stat-card"><div class="l">Avg Holding Period</div><div class="v">${r.performance.avgHolding}</div></div>
+    <div class="stat-card"><div class="l">Risk/Reward</div><div class="v">${r.performance.riskReward}</div></div>
+  </div>`:''}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div><b style="font-size:13.5px;color:var(--gain);">Strengths</b><ul style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">${(r.strengths||[]).map(s=>`<li style="font-size:13px;" class="dim">• ${s}</li>`).join('')}</ul></div>
+    <div><b style="font-size:13.5px;color:var(--amber);">Areas to Improve</b><ul style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">${(r.improvements||[]).map(s=>`<li style="font-size:13px;" class="dim">• ${s}</li>`).join('')}</ul></div>
+  </div>
+  ${r.behavioral?.length? `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);"><b style="font-size:13.5px;">Behavioral Observations</b><ul style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">${r.behavioral.map(s=>`<li style="font-size:13px;" class="dim">• ${s}</li>`).join('')}</ul></div>`:''}
+  <p class="faint" style="font-size:11px;margin-top:14px;">These are observations generated from your recorded journal entries, not a psychological diagnosis or financial advice.</p>`;
+}
+async function runAIJournalAnalysis(){
+  if(S.journal.length===0){ toast('Log a few trades first'); return; }
+  if(!S.userId){ toast('Log in to use AI journal analysis'); return; }
+  S.aiJournalLoading=true; S.aiJournalError=null; render();
+  const stats = closedStats();
+  try{
+    const prompt = `You are analyzing a beginner trader's paper-trading journal (simulated, no real money). Based ONLY on this data, identify patterns. Respond with ONLY valid JSON, no markdown, no code fences, matching exactly this shape:
+{"strengths": ["...","..."], "improvements": ["...","..."], "behavioral": ["...","..."]}
+Give 2-3 short items (each under 20 words) per array, phrased as observations from the data, not diagnoses. Journal entries JSON:
+${JSON.stringify(S.journal.map(e=>({ticker:e.ticker,side:e.side,qty:e.qty,entryPrice:e.entryPrice,exitPrice:e.exitPrice||null,date:e.date,exitDate:e.exitDate||null,strategy:e.strategy,reason:e.reason,confidence:e.confidence,whatWentWell:e.whatWentWell,whatWentWrong:e.whatWentWrong})))}`;
+    const text = await callAI('journal_analysis', prompt);
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    if(stats) parsed.performance = {winRate: stats.winRate.toFixed(0)+'%', avgWin: fmtINR(Math.round(stats.avgWin)), avgLoss: fmtINR(Math.round(stats.avgLoss)), avgHolding: stats.avgHold.toFixed(1)+' days', riskReward: stats.rr? stats.rr.toFixed(2):'—'};
+    S.aiJournalResult = parsed;
+  }catch(e){
+    S.aiJournalError = e.message && /not configured/i.test(e.message) ? "AI journal analysis isn't configured on this site yet." : "Couldn't analyze your journal right now — please try again.";
+  }
+  S.aiJournalLoading=false; render();
+}
+
+/* ================= LEARN ================= */
+function renderLearn(){
+  if(S.activeLessonId) return renderLessonView();
+  const lvl = levelFromXP(S.xp);
+  return `
+  <div class="page-head"><div><h1>Learning Hub</h1><div class="sub">Level ${lvl} · ${LEVEL_NAMES[lvl]} · ${S.xp} XP</div></div></div>
+  ${LEARN_CATS.map(cat=>{
+    const lessons = LESSONS.filter(l=>l.cat===cat);
+    return `<div class="card" style="margin-bottom:18px;">
+      <div style="font-weight:700;font-size:19px;font-family:'Fraunces',serif;margin-bottom:4px;">${cat}</div>
+      <div class="dim" style="font-size:13.5px;margin-bottom:16px;">${LEARN_CAT_SUB[cat]}</div>
+      <div class="lesson-grid">${lessons.map(l=>{ const done=S.completedLessons.includes(l.id); return `
+        <div class="card-flat lesson-card" onclick="S.activeLessonId='${l.id}';render()" style="cursor:pointer;">
+          <h4>${l.title} ${done?'<span style="color:var(--gain);">✓</span>':''}</h4>
+          <p>${l.sub}</p>
+          <div class="dim" style="font-size:12px;margin-top:10px;">${l.mins} min · ${l.quizCount} quiz question${l.quizCount>1?'s':''}</div>
+        </div>`; }).join('')}</div>
+    </div>`;
+  }).join('')}`;
+}
+function renderLessonView(){
+  const l = LESSONS.find(x=>x.id===S.activeLessonId);
+  const done = S.completedLessons.includes(l.id);
+  const answered = S.quizState[l.id];
+  const wasCorrect = answered!=null && answered===l.quiz.correct;
+  return `
+  <a href="#" onclick="S.activeLessonId=null;render();return false;" class="dim" style="font-size:13px;">← Back to Learning Hub</a>
+  <div class="card" style="margin-top:14px;max-width:640px;">
+    <span class="pill" style="margin-bottom:12px;">${l.cat} · ${l.mins} min</span>
+    <h2 class="serif" style="font-size:24px;margin-bottom:16px;">${l.title} ${done?'<span style="color:var(--gain);font-size:16px;">✓ Completed</span>':''}</h2>
+    <p style="font-size:14.5px;line-height:1.7;white-space:pre-wrap;margin-bottom:18px;">${l.body}</p>
+    <div style="background:var(--bg-elev-2);border-radius:12px;padding:16px;margin-bottom:18px;">
+      <b style="font-size:12.5px;color:var(--indigo);">EXAMPLE</b>
+      <p style="font-size:13.5px;margin-top:6px;line-height:1.6;">${l.example}</p>
+    </div>
+    <div style="border-left:3px solid var(--accent);padding-left:14px;margin-bottom:26px;">
+      <b style="font-size:12.5px;color:var(--accent);">KEY TAKEAWAY</b>
+      <p style="font-size:14px;margin-top:4px;">${l.takeaway}</p>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:20px;">
+      <b style="font-size:14.5px;">Mini Quiz</b>
+      <p class="dim" style="font-size:13.5px;margin:8px 0 14px;">${l.quiz.q}</p>
+      ${l.quiz.options.map((o,i)=>`<button class="quiz-opt ${answered!=null?(i===l.quiz.correct?'correct':(i===answered?'wrong':'')):''}" onclick="answerLessonQuiz('${l.id}',${i})" ${answered!=null?'disabled':''}>${o}</button>`).join('')}
+      ${answered!=null? `
+        <div style="margin-top:12px;padding:12px 14px;border-radius:10px;background:${wasCorrect?'color-mix(in srgb, var(--gain) 14%, transparent)':'color-mix(in srgb, var(--loss) 12%, transparent)'};font-size:13.5px;">
+          ${wasCorrect? `<b style="color:var(--gain);">Correct!</b> ${l.takeaway}` : `<b style="color:var(--loss);">Not quite.</b> The correct answer is: <b>${l.quiz.options[l.quiz.correct]}</b>. ${l.takeaway}`}
+        </div>
+        <div style="margin-top:12px;display:flex;gap:10px;">
+          ${!wasCorrect? `<button class="btn btn-primary" onclick="retryLessonQuiz('${l.id}')">Try Again</button>` : ''}
+          <button class="btn ${wasCorrect?'btn-primary':'btn-ghost'}" onclick="S.activeLessonId=null;render()">Back to Learning Hub</button>
+        </div>`:''}
+    </div>
+  </div>`;
+}
+function answerLessonQuiz(lid, i){
+  if(S.quizState[lid]!=null) return;
+  S.quizState[lid]=i;
+  const l = LESSONS.find(x=>x.id===lid);
+  const alreadyCompleted = S.completedLessons.includes(lid);
+  if(i===l.quiz.correct){
+    if(!alreadyCompleted){ S.completedLessons.push(lid); if(S.userId) persistLessonComplete(lid); addXP(20, `Completed "${l.title}"`, 'lesson:'+lid); }
+  }
+  render();
+}
+function retryLessonQuiz(lid){ S.quizState[lid]=null; render(); }
+
+/* ================= CHALLENGES ================= */
+function getCurrentChallenge(){
+  // Weekly cycle: Monday 00:00 local -> next Monday 00:00, computed off real current date.
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun..6=Sat
+  const diffToMonday = (day===0? -6 : 1-day);
+  const start = new Date(now); start.setHours(0,0,0,0); start.setDate(now.getDate()+diffToMonday);
+  const end = new Date(start); end.setDate(start.getDate()+7);
+  const msLeft = end - now;
+  const daysLeft = Math.max(0, Math.ceil(msLeft/(1000*60*60*24)));
+  const fmtD = d=>`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const weekNum = Math.floor((start - new Date(start.getFullYear(),0,1))/(7*24*60*60*1000))+1;
+  return {start, end, daysLeft, label:`Week ${weekNum} Risk-Adjusted Sprint`, dateRange:`${fmtD(start)} → ${fmtD(end)}`,
+    endsText: daysLeft<=0 ? 'Ending today' : daysLeft===1 ? 'Ends in 1 day' : `Ends in ${daysLeft} days`};
+}
+function renderChallenges(){
+  const myReturn = totalPnL()/100000*100;
+  const ch = getCurrentChallenge();
+  let board = [
+    {n:'Aarav K.', r:7.8},{n:'Priya S.', r:6.9},{n:'Rohan M.', r:5.1},{n:'Neha T.', r:4.2},{n:'Vikram J.', r:3.0},{n:'Sana R.', r:1.4}
+  ];
+  board.push({n:S.user.name||'You', r:myReturn, me:true});
+  board.sort((a,b)=>b.r-a.r);
+  return `
+  <div class="page-head"><div><h1>Weekly Challenges</h1><div class="sub">Friendly competition on simulated, risk-adjusted performance.</div></div></div>
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;">
+      <div><div style="font-weight:700;font-size:16px;font-family:'Fraunces',serif;margin-bottom:6px;">${ch.label}</div><p class="dim" style="font-size:13.5px;max-width:460px;">Achieve the best risk-adjusted simulated performance over 7 days. Ranked on return, volatility and drawdown — not absolute profit alone.</p>
+      <div class="faint" style="font-size:12.5px;margin-top:10px;">${ch.dateRange}</div></div>
+      <span class="pill pill-accent">${ch.endsText}</span>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Leaderboard</div>
+    <div class="faint" style="font-size:12px;margin-bottom:8px;">Ranked by return · volatility and drawdown also considered</div>
+    ${board.map((b,i)=>`<div class="lb-row ${b.me?'me':''}"><span class="lb-rank">#${i+1}</span><div class="avatar" style="width:28px;height:28px;font-size:11px;">${b.n.charAt(0)}</div><div style="flex:1;font-weight:${b.me?'700':'500'};font-size:13.5px;">${b.n}${b.me?' (you)':''}</div><span class="mono ${b.r>=0?'gain':'loss'}">${pctStr(b.r)}</span></div>`).join('')}
+  </div>`;
+}
+
+/* ================= WATCHLIST ================= */
+function renderWatchlist(){
+  const q=(S.searchQuery||'').toLowerCase();
+  const available = STOCKS.filter(s=>!S.watchlist.includes(s.t) && (!q || s.t.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)));
+  return `
+  <div class="page-head"><div><h1>My Watchlist ⭐</h1><div class="sub">${S.watchlist.length} stocks tracked</div></div></div>
+  <div class="card" style="margin-bottom:16px;">
+    ${S.watchlist.length===0? `<div class="empty-state"><div class="ei">⭐</div><h3>Your watchlist is empty.</h3><p>Add stocks below to track them here.</p></div>` :
+      S.watchlist.map(t=>{ const s=stock(t); return `<div class="wl-row rowhover" onclick="nav('stock',{selectedTicker:'${t}'})">
+        <div style="display:flex;align-items:center;gap:12px;"><div class="ticker-tag">${t.slice(0,3)}</div><div><b>${t}</b><div class="faint" style="font-size:11.5px;">${s.name}</div></div></div>
+        <div style="display:flex;align-items:center;gap:16px;"><div style="text-align:right;"><div class="mono">${fmtINR(s.price,1)}</div><div class="${s.changePct>=0?'gain':'loss'}" style="font-size:12px;">${pctStr(s.changePct)}</div></div>
+        <button class="icon-btn" style="width:30px;height:30px;" onclick="event.stopPropagation();toggleWatch('${t}')">✕</button></div>
+      </div>`; }).join('')}
+  </div>
+  <div class="card">
+    <div style="font-weight:700;font-size:14px;margin-bottom:10px;">Add to Watchlist</div>
+    <input placeholder="Search stocks…" value="${S.searchQuery}" oninput="S.searchQuery=this.value;render()" style="margin-bottom:12px;">
+    ${available.slice(0,8).map(s=>`<div class="wl-row"><div style="display:flex;align-items:center;gap:12px;"><div class="ticker-tag">${s.t.slice(0,3)}</div><div><b>${s.t}</b><div class="faint" style="font-size:11.5px;">${s.sector}</div></div></div><button class="btn btn-ghost btn-sm" onclick="toggleWatch('${s.t}')">+ Add</button></div>`).join('')}
+  </div>`;
+}
+
+/* ================= PROFILE ================= */
+function renderProfile(){
+  const lvl=levelFromXP(S.xp), xn=xpToNext(S.xp);
+  const cs = closedStats();
+  return `
+  <div class="page-head"><div><h1>Profile</h1></div></div>
+  <div class="dash-2col">
+    <div class="card" style="text-align:center;">
+      <div class="avatar" style="width:76px;height:76px;font-size:28px;margin:0 auto 14px;">${(S.user.name||'T').charAt(0).toUpperCase()}</div>
+      <div style="font-weight:700;font-size:18px;">${S.user.name||'Trader'}</div>
+      <div class="faint" style="font-size:13px;margin-bottom:14px;">${S.user.email||''}</div>
+      <div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;"><span class="pill">${S.user.experience||'Beginner'}</span><span class="pill pill-amber">${S.user.plan==='pro'?'💎 Pro':'Free'}</span></div>
+      <div class="prog-row"><span class="dim">Level ${lvl} — ${LEVEL_NAMES[lvl]}</span><span class="mono">${S.xp} XP</span></div>
+      <div class="progress-bar"><i style="width:${xn.pct}%"></i></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Statistics</div>
+      <div class="stat-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="stat-card"><div class="l">Lessons Completed</div><div class="v">${S.completedLessons.length}/${LESSONS.length}</div></div>
+        <div class="stat-card"><div class="l">Paper Trades</div><div class="v">${S.transactions.length}</div></div>
+        <div class="stat-card"><div class="l">Journal Entries</div><div class="v">${S.journal.length}</div></div>
+        <div class="stat-card"><div class="l">Win Rate</div><div class="v">${cs? cs.winRate.toFixed(0)+'%' : '—'}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Badges</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
+      ${BADGE_DEFS.map(b=>{ const earned=S.badges.includes(b.id); return `<div class="card" style="display:flex;gap:10px;align-items:center;padding:12px;opacity:${earned?1:0.4};"><div class="badge-icon">${b.icon}</div><div><div style="font-weight:700;font-size:12.5px;">${b.label}</div><div class="faint" style="font-size:11px;">${b.desc}</div></div></div>`; }).join('')}
+    </div>
+  </div>`;
+}
+
+/* ================= PRICING ================= */
+function renderPricing(){
+  return `
+  <div class="page-head"><div><h1>Pricing</h1><div class="sub">Core learning stays free, always.</div></div></div>
+  <div class="price-grid">
+    <div class="card price-card">
+      <div style="font-weight:700;">Free</div>
+      <div class="price-amt">₹0</div>
+      <div class="faint" style="font-size:12.5px;">forever</div>
+      <ul class="price-list">
+        <li>✓ ₹1,00,000 virtual balance</li><li>✓ Basic paper trading</li><li>✓ Basic stock information</li>
+        <li>✓ All beginner &amp; core lessons</li><li>✓ Basic portfolio tracking</li><li>✓ Limited journal analytics</li>
+      </ul>
+      <button class="btn btn-ghost btn-block" disabled>Current Plan</button>
+    </div>
+    <div class="card price-card pro">
+      <span class="pill pill-accent" style="position:absolute;top:-12px;">MOST POPULAR</span>
+      <div style="font-weight:700;">Pro</div>
+      <div class="price-amt">₹299<span class="faint" style="font-size:15px;">/mo</span></div>
+      <div class="faint" style="font-size:12.5px;">simulated billing — demo only</div>
+      <ul class="price-list">
+        <li>✓ Everything in Free</li><li>✓ Advanced Portfolio Doctor</li><li>✓ AI journal pattern analysis</li>
+        <li>✓ Advanced stock analysis &amp; screeners</li><li>✓ Unlimited journal history</li><li>✓ Advanced paper-trading challenges</li>
+      </ul>
+      <button class="btn btn-primary btn-block" onclick="upgradePro()">${S.user.plan==='pro'?'You are Pro ✓':'Upgrade to Pro'}</button>
+    </div>
+  </div>`;
+}
+function upgradePro(){ if(S.user.plan==='pro') return; S.user.plan='pro'; toast('Upgraded to Pro (simulated)','💎'); render(); }
+
+/* ================= SETTINGS ================= */
+function renderSettings(){
+  return `
+  <div class="page-head"><div><h1>Settings</h1></div></div>
+  <div class="card" style="max-width:480px;margin-bottom:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Account</div>
+    <div class="field"><label>Name</label><input value="${S.user.name||''}" onchange="S.user.name=this.value"></div>
+    <div class="field"><label>Email</label><input value="${S.user.email||''}" onchange="S.user.email=this.value"></div>
+    <div class="field"><label>Experience Level</label><select onchange="S.user.experience=this.value">${['Complete Beginner','Beginner','Intermediate','Advanced'].map(e=>`<option ${S.user.experience===e?'selected':''}>${e}</option>`).join('')}</select></div>
+  </div>
+  <div class="card" style="max-width:480px;margin-bottom:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Appearance</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;"><span class="dim" style="font-size:13.5px;">Theme</span><button class="btn btn-ghost btn-sm" onclick="toggleTheme()">${S.theme==='dark'?'☀️ Light mode':'🌙 Dark mode'}</button></div>
+  </div>
+  <div class="card" style="max-width:480px;">
+    <button class="btn btn-loss btn-block" onclick="logout()">Log out</button>
+  </div>`;
+}
+/* logout() defined in app-shell section above */
+</script>
+
+<script>
+/* ================= MODALS: TRADE ================= */
+let tradeCtx = {open:false, ticker:null, side:'buy', orderType:'market'};
+function openTradeModal(ticker, side){ tradeCtx = {open:true, ticker, side, orderType:'market'}; render(); }
+function closeTradeModal(){ tradeCtx.open=false; render(); }
+function setTradeSide(side){ tradeCtx.side=side; render(); }
+function setOrderType(t){ tradeCtx.orderType=t; render(); }
+function renderTradeModal(){
+  if(!tradeCtx.open) return '';
+  const s = stock(tradeCtx.ticker);
+  const holding = S.holdings[tradeCtx.ticker];
+  return `<div class="modal-overlay" onclick="if(event.target===this)closeTradeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>${tradeCtx.side==='buy'?'Buy':'Sell'} ${s.t}</h3><button class="x-btn" onclick="closeTradeModal()">✕</button></div>
+      <div class="seg"><div class="${tradeCtx.side==='buy'?'active':''}" onclick="setTradeSide('buy')">Buy</div><div class="${tradeCtx.side==='sell'?'active':''}" onclick="setTradeSide('sell')">Sell</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding:12px;background:var(--bg-elev-2);border-radius:10px;">
+        <div><div style="font-weight:700;">${s.t}</div><div class="faint" style="font-size:11.5px;">${s.name}</div></div>
+        <div class="mono" style="font-weight:600;">${fmtINR(s.price,2)}</div>
+      </div>
+      <div class="field"><label>Order Type</label>
+        <div class="seg"><div class="${tradeCtx.orderType==='market'?'active':''}" onclick="setOrderType('market')">Market</div><div class="${tradeCtx.orderType==='limit'?'active':''}" onclick="setOrderType('limit')">Limit</div></div>
+      </div>
+      ${tradeCtx.orderType==='limit'? `<div class="field"><label>Limit Price (₹)</label><input id="limitPrice" type="number" value="${s.price.toFixed(2)}"></div>`:''}
+      <div class="field"><label>Quantity</label><input id="tradeQty" type="number" min="1" value="1" oninput="updateOrderTotal()"></div>
+      ${tradeCtx.side==='sell' && holding? `<div class="faint" style="font-size:12px;margin-bottom:10px;">You own ${holding.qty} shares</div>`:''}
+      <div class="order-total"><span class="dim">Estimated Total</span><span class="mono" id="orderTotalVal">${fmtINR(s.price,2)}</span></div>
+      ${tradeCtx.side==='buy'? `<div class="faint" style="font-size:12px;margin:6px 0 14px;">Available cash: ${fmtINR(S.cash)}</div>` : `<div class="faint" style="font-size:12px;margin:6px 0 14px;">Available to sell: ${holding?holding.qty:0} shares</div>`}
+      <button class="btn ${tradeCtx.side==='buy'?'btn-primary':'btn-loss'} btn-block" onclick="executeTrade()">${tradeCtx.orderType==='limit' ? `Place ${tradeCtx.side==='buy'?'Buy':'Sell'} Limit Order` : `${tradeCtx.side==='buy'?'Confirm Buy':'Confirm Sell'} (Simulated)`}</button>
+      <p class="faint" style="font-size:11px;margin-top:10px;text-align:center;">${tradeCtx.orderType==='limit' ? 'This order will sit as Pending and only fill automatically when the simulated price reaches your limit — no real money is used.' : 'This is a simulated trade — no real money is used.'}</p>
+    </div>
+  </div>`;
+}
+function updateOrderTotal(){
+  const s = stock(tradeCtx.ticker);
+  const qty = parseFloat(document.getElementById('tradeQty')?.value)||0;
+  const price = tradeCtx.orderType==='limit'? (parseFloat(document.getElementById('limitPrice')?.value)||s.price) : s.price;
+  const el = document.getElementById('orderTotalVal'); if(el) el.textContent = fmtINR(qty*price,2);
+}
+function executeTrade(){
+  const s = stock(tradeCtx.ticker);
+  const qty = parseInt(document.getElementById('tradeQty')?.value)||0;
+  if(qty<=0 || !Number.isFinite(qty)){ toast('Enter a valid quantity'); return; }
+
+  if(tradeCtx.orderType==='limit'){
+    const limitPrice = parseFloat(document.getElementById('limitPrice')?.value);
+    if(!limitPrice || limitPrice<=0){ toast('Enter a valid limit price'); return; }
+    if(tradeCtx.side==='sell'){
+      const h = S.holdings[s.t];
+      if(!h || h.qty<qty){ toast("You don't own enough shares to place that sell order"); return; }
+    } else {
+      // Rough affordability check against the limit price so users can't queue wildly unaffordable orders.
+      if(qty*limitPrice > S.cash*3){ toast("Order size is far beyond your available cash"); return; }
+    }
+    const order = {id:Date.now(), ticker:s.t, side:tradeCtx.side, qty, limitPrice, status:'pending', createdAt:new Date().toISOString()};
+    S.pendingOrders.unshift(order);
+    if(S.userId) persistPendingOrder(order).then(realId=>{ if(realId) order.id=realId; });
+    toast(`${tradeCtx.side==='buy'?'Buy':'Sell'} limit order placed for ${qty} ${s.t} @ ${fmtINR(limitPrice,2)} — will fill when price ${tradeCtx.side==='buy'?'drops to or below':'rises to or above'} that level.`, '⏳');
+    tradeCtx.open=false; render();
+    return;
+  }
+
+  // Market order — executes immediately at current simulated price.
+  const price = s.price;
+  const total = qty*price;
+  if(tradeCtx.side==='buy'){
+    if(total>S.cash){ toast("Not enough virtual cash for this order"); return; }
+    S.cash -= total;
+    const h = S.holdings[s.t];
+    if(h){ h.avgPrice = (h.avgPrice*h.qty + total)/(h.qty+qty); h.qty += qty; }
+    else S.holdings[s.t] = {qty, avgPrice:price};
+    const tx = {id:Date.now(), ticker:s.t, side:'buy', qty, price, total, date:new Date().toISOString().slice(0,10), orderType:'market'};
+    S.transactions.unshift(tx);
+    persistHolding(s.t); persistTransaction(tx); persistProfileSoon();
+    toast(`Bought ${qty} ${s.t} @ ${fmtINR(price,2)}`, '🟢');
+  } else {
+    const h = S.holdings[s.t];
+    if(!h || h.qty<qty){ toast("You don't own enough shares to sell that quantity"); return; }
+    S.cash += total;
+    h.qty -= qty;
+    if(h.qty===0) delete S.holdings[s.t];
+    const tx = {id:Date.now(), ticker:s.t, side:'sell', qty, price, total, date:new Date().toISOString().slice(0,10), orderType:'market'};
+    S.transactions.unshift(tx);
+    persistHolding(s.t); persistTransaction(tx); persistProfileSoon();
+    toast(`Sold ${qty} ${s.t} @ ${fmtINR(price,2)}`, '🔴');
+  }
+  addXP(5, 'Trade executed');
+  tradeCtx.open=false; render();
+}
+
+/* ================= MODALS: JOURNAL ================= */
+let journalCtx = {open:false, editId:null, closing:false};
+function openJournalModal(editId, closing){ journalCtx = {open:true, editId:editId||null, closing:!!closing}; render(); }
+function closeJournalModal(){ journalCtx.open=false; render(); }
+function renderJournalModal(){
+  if(!journalCtx.open) return '';
+  const editing = journalCtx.editId? S.journal.find(e=>e.id===journalCtx.editId) : null;
+  const closingMode = journalCtx.closing && editing;
+  return `<div class="modal-overlay" onclick="if(event.target===this)closeJournalModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>${closingMode?'Close Trade':(editing?'Edit Journal Entry':'New Journal Entry')}</h3><button class="x-btn" onclick="closeJournalModal()">✕</button></div>
+      ${!closingMode? `
+      <div class="field"><label>Stock</label><select id="jTicker">${STOCKS.map(s=>`<option value="${s.t}" ${editing?.ticker===s.t?'selected':''}>${s.t} — ${s.name}</option>`).join('')}</select></div>
+      <div class="field"><label>Side</label><div class="seg"><div class="${(!editing||editing.side==='buy')?'active':''}" onclick="this.parentNode.querySelectorAll('div').forEach(d=>d.classList.remove('active'));this.classList.add('active');this.dataset.v='buy';journalCtx._side='buy'" data-v="buy">Buy</div><div class="${editing?.side==='sell'?'active':''}" onclick="this.parentNode.querySelectorAll('div').forEach(d=>d.classList.remove('active'));this.classList.add('active');journalCtx._side='sell'" data-v="sell">Sell</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="field"><label>Quantity</label><input id="jQty" type="number" value="${editing?.qty||1}"></div>
+        <div class="field"><label>Entry Price (₹)</label><input id="jEntry" type="number" value="${editing?.entryPrice||''}"></div>
+      </div>
+      <div class="field"><label>Date</label><input id="jDate" type="date" value="${editing?.date||new Date().toISOString().slice(0,10)}"></div>
+      <div class="field"><label>Strategy</label><input id="jStrategy" placeholder="e.g. Breakout, Value pick" value="${editing?.strategy||''}"></div>
+      <div class="field"><label>Reason for trade</label><textarea id="jReason" rows="2" placeholder="Why are you making this trade?">${editing?.reason||''}</textarea></div>
+      <div class="field"><label>Confidence (1-5)</label><input id="jConfidence" type="number" min="1" max="5" value="${editing?.confidence||3}"></div>
+      <div class="field"><label>Expected outcome</label><input id="jExpected" placeholder="What do you expect to happen?" value="${editing?.expectedOutcome||''}"></div>
+      <div class="field"><label>Notes</label><textarea id="jNotes" rows="2">${editing?.notes||''}</textarea></div>
+      <button class="btn btn-primary btn-block" onclick="saveJournalEntry(${editing?`'${editing.id}'`:'null'})">Save Entry</button>
+      ` : `
+      <div class="faint" style="font-size:12.5px;margin-bottom:14px;">${editing.ticker} · ${editing.side.toUpperCase()} ${editing.qty} @ ${fmtINR(editing.entryPrice,2)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="field"><label>Exit Price (₹)</label><input id="jExitPrice" type="number" value="${stock(editing.ticker).price.toFixed(2)}"></div>
+        <div class="field"><label>Exit Date</label><input id="jExitDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      </div>
+      <div class="field"><label>Actual outcome</label><input id="jActual" placeholder="What actually happened?"></div>
+      <div class="field"><label>What went well?</label><textarea id="jWell" rows="2"></textarea></div>
+      <div class="field"><label>What went wrong?</label><textarea id="jWrong" rows="2"></textarea></div>
+      <div class="field"><label>Lesson learned</label><textarea id="jLesson" rows="2"></textarea></div>
+      <button class="btn btn-primary btn-block" onclick="closeJournalTrade('${editing.id}')">Save & Close Trade</button>
+      `}
+    </div>
+  </div>`;
+}
+function saveJournalEntry(id){
+  const side = journalCtx._side || (document.querySelector('#jTicker') ? (S.journal.find(e=>e.id===id)?.side || 'buy') : 'buy');
+  const entry = {
+    id: id || 'j'+Date.now(),
+    ticker: document.getElementById('jTicker').value,
+    side: side,
+    qty: parseInt(document.getElementById('jQty').value)||1,
+    entryPrice: parseFloat(document.getElementById('jEntry').value)||0,
+    date: document.getElementById('jDate').value,
+    strategy: document.getElementById('jStrategy').value,
+    reason: document.getElementById('jReason').value,
+    confidence: parseInt(document.getElementById('jConfidence').value)||3,
+    expectedOutcome: document.getElementById('jExpected').value,
+    notes: document.getElementById('jNotes').value,
+  };
+  if(id){ const idx=S.journal.findIndex(e=>e.id===id); const old=S.journal[idx]; S.journal[idx]={...old, ...entry}; if(S.userId) persistJournalUpdate(id, S.journal[idx]); toast('Journal entry updated'); }
+  else { S.journal.unshift(entry); addXP(8,'Journal entry logged'); toast('Trade journaled','📝');
+    if(S.userId) persistJournalEntry(entry).then(realId=>{ if(realId){ entry.id=realId; render(); } }); }
+  journalCtx.open=false; render();
+}
+function closeJournalTrade(id){
+  const idx = S.journal.findIndex(e=>e.id===id);
+  if(idx<0) return;
+  S.journal[idx] = {...S.journal[idx],
+    exitPrice: parseFloat(document.getElementById('jExitPrice').value)||0,
+    exitDate: document.getElementById('jExitDate').value,
+    actualOutcome: document.getElementById('jActual').value,
+    whatWentWell: document.getElementById('jWell').value,
+    whatWentWrong: document.getElementById('jWrong').value,
+    lessonLearned: document.getElementById('jLesson').value,
+  };
+  if(S.userId) persistJournalUpdate(id, S.journal[idx]);
+  addXP(10,'Trade closed & reflected');
+  journalCtx.open=false; render(); toast('Trade closed in journal','✅');
+}
+
+function renderModals(){ return renderTradeModal() + renderJournalModal(); }
+
+/* ================= CHARTS ================= */
+function lineChart(canvasId, labels, data, positive){
+  const ctx = document.getElementById(canvasId); if(!ctx) return;
+  const color = positive? getCss('--gain') : getCss('--loss');
+  const grad = ctx.getContext('2d').createLinearGradient(0,0,0,220);
+  grad.addColorStop(0, color+'33'); grad.addColorStop(1, color+'00');
+  charts[canvasId] = new Chart(ctx, { type:'line', data:{ labels, datasets:[{data, borderColor:color, backgroundColor:grad, fill:true, tension:.35, pointRadius:0, borderWidth:2}]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{mode:'index', intersect:false}},
+      scales:{ x:{display:false}, y:{display:false} } } });
+}
+function donutChart(canvasId, entries){
+  const ctx = document.getElementById(canvasId); if(!ctx) return;
+  charts[canvasId] = new Chart(ctx, { type:'doughnut', data:{ labels: entries.map(e=>e.sec), datasets:[{ data: entries.map(e=>e.pct), backgroundColor: entries.map(e=>SECTOR_COLORS[e.sec]||SECTOR_COLORS.Other), borderWidth:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{legend:{display:false}} } });
+}
+function getCss(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function afterRender(){
+  if(typeof Chart==='undefined') return;
+  try{
+  if(S.screen==='landing'){
+    const h = genHistory('heroChart', 104850, 30, 0.12);
+    lineChart('heroChart', h.map((_,i)=>i), h, true);
+  }
+  if(S.screen==='app'){
+    if(S.route==='dashboard'){
+      if(!S.portfolioHistCache) S.portfolioHistCache = {};
+      const tf = S.dashTF||'1M';
+      const tfPoints = {'1D':40,'1W':42,'1M':30,'3M':90,'6M':180,'1Y':52,'All':104}[tf]||30;
+      if(!S.portfolioHistCache[tf]) S.portfolioHistCache[tf] = genHistory('portfolio_'+tf, 100000, tfPoints, 0.1);
+      const base = S.portfolioHistCache[tf];
+      const pv = portfolioValue();
+      const scaled = base.map((v,i)=> i===base.length-1? pv : v*(pv/base[base.length-1]));
+      lineChart('dashChart', scaled.map((_,i)=>i), scaled, scaled[scaled.length-1]>=scaled[0]);
+    }
+    if(S.route==='markets'){
+      const h = getHistory('NIFTY50', INDICES[0].price, 0.09, '3M');
+      lineChart('marketChart', h.map((_,i)=>i), h, h[h.length-1]>=h[0]);
+    }
+    if(S.route==='stock'){
+      const s = stock(S.selectedTicker);
+      const h = getHistory(s.t, s.price, s.vol, S.stockTF);
+      lineChart('stockChart', h.map((_,i)=>i), h, h[h.length-1]>=h[0]);
+    }
+    if(S.route==='doctor'){
+      const d = computeDoctor();
+      if(d.sectorPct.length) donutChart('doctorDonut', d.sectorPct);
+    }
+  }
+  }catch(e){ console.warn('Chart render skipped:', e); }
+}
+
+/* boot */
+document.documentElement.setAttribute('data-theme', S.theme);
+bootAuth();
+</script>
+</body>
+</html>
